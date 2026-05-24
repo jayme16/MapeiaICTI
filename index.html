@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAPEIA ICTI — Mapeando o que importa para você</title>
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --col-seg:#ef4444; --col-sau:#22c55e; --col-ali:#f59e0b;
+      --col-tra:#3b82f6; --col-ser:#8b5cf6; --col-icti:#1A56DB;
+      --bg:#f8fafc; --surface:#ffffff; --border:#e5e7eb;
+      --text-1:#111827; --text-2:#6b7280; --text-3:#9ca3af;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:0 4px 16px rgba(0,0,0,.12);
+      --shadow-lg:0 10px 40px rgba(0,0,0,.16);
+      --radius:12px; --header-h:64px; --sidebar-w:360px;
+      --font:'Nunito','DM Sans',sans-serif;
+    }
+    html,body { height:100%; font-family:var(--font); background:var(--bg); color:var(--text-1); overflow:hidden; }
+
+    /* HEADER */
+    .header { position:fixed; top:0; left:0; right:0; height:var(--header-h); background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; padding:0 16px; z-index:1000; box-shadow:var(--shadow-sm); }
+    .header-left { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+    .hamburger-btn { background:none; border:none; cursor:pointer; padding:8px; border-radius:8px; display:flex; flex-direction:column; gap:4.5px; transition:background .15s; }
+    .hamburger-btn:hover { background:var(--bg); }
+    .hamburger-btn span { display:block; width:22px; height:2px; background:var(--text-2); border-radius:2px; transition:all .25s; }
+    .hamburger-btn.open span:nth-child(1) { transform:translateY(6.5px) rotate(45deg); }
+    .hamburger-btn.open span:nth-child(2) { opacity:0; }
+    .hamburger-btn.open span:nth-child(3) { transform:translateY(-6.5px) rotate(-45deg); }
+    .logo-wrap { display:flex; align-items:center; gap:10px; }
+    .logo-icon { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:var(--col-icti); flex-shrink:0; }
+    .logo-text { display:flex; flex-direction:column; line-height:1; }
+    .logo-mapeia { font-size:18px; font-weight:800; color:#1e3a8a; letter-spacing:-.5px; }
+    .logo-icti { font-size:12px; font-weight:700; color:#4ade80; letter-spacing:2px; margin-top:-1px; }
+    .logo-tagline { font-size:9px; color:var(--text-3); letter-spacing:.2px; margin-top:2px; }
+    .header-center { flex:1; max-width:520px; position:relative; }
+    .search-box { display:flex; align-items:center; gap:10px; background:var(--bg); border:1.5px solid var(--border); border-radius:24px; padding:0 16px; height:42px; transition:border-color .2s,box-shadow .2s; position:relative; }
+    .search-box:focus-within { border-color:var(--col-icti); box-shadow:0 0 0 3px rgba(26,86,219,.12); background:var(--surface); }
+    .search-box input { flex:1; border:none; background:transparent; font-family:var(--font); font-size:14px; color:var(--text-1); outline:none; }
+    .search-box input::placeholder { color:var(--text-3); }
+    .search-results { position:absolute; top:calc(100% + 8px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-md); z-index:2000; overflow:hidden; display:none; }
+    .search-results.show { display:block; }
+    .search-result-item { padding:12px 16px; cursor:pointer; display:flex; align-items:center; gap:12px; transition:background .12s; font-size:13.5px; }
+    .search-result-item:hover { background:var(--bg); }
+    .search-result-item .sri-icon { font-size:18px; }
+    .search-result-item .sri-name { font-weight:600; color:var(--text-1); }
+    .search-result-item .sri-sub { font-size:12px; color:var(--text-3); }
+    .header-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+    .filter-pills { display:flex; align-items:center; gap:6px; }
+    .pill { display:flex; align-items:center; gap:5px; padding:6px 13px; border:1.5px solid var(--border); border-radius:20px; background:var(--surface); font-family:var(--font); font-size:13px; font-weight:600; color:var(--text-2); cursor:pointer; transition:all .18s; white-space:nowrap; }
+    .pill:hover { border-color:var(--col-icti); color:var(--col-icti); }
+    .pill.active { background:var(--col-icti); border-color:var(--col-icti); color:#fff; }
+    .pill-dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+    .btn-icon { width:38px; height:38px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-2); transition:all .18s; }
+    .btn-icon:hover { border-color:var(--col-icti); color:var(--col-icti); }
+    .btn-icon.logged-in { background:var(--col-icti); border-color:var(--col-icti); color:#fff; }
+
+    /* SIDEBAR */
+    .sidebar { position:fixed; top:var(--header-h); left:0; bottom:0; width:var(--sidebar-w); background:var(--surface); border-right:1px solid var(--border); box-shadow:var(--shadow-md); z-index:900; transform:translateX(-100%); transition:transform .28s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; overflow:hidden; }
+    .sidebar.open { transform:translateX(0); }
+    .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.18); z-index:850; backdrop-filter:blur(2px); }
+    .sidebar-overlay.show { display:block; }
+    .sidebar-inner { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+    .sidebar-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0; }
+    .tab-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 4px 10px; border:none; background:none; font-family:var(--font); font-size:10px; font-weight:700; letter-spacing:.5px; color:var(--text-3); cursor:pointer; position:relative; transition:color .18s; }
+    .tab-btn::after { content:''; position:absolute; bottom:0; left:20%; right:20%; height:2.5px; background:var(--col-icti); border-radius:2px; opacity:0; transition:opacity .18s; }
+    .tab-btn.active { color:var(--col-icti); }
+    .tab-btn.active::after { opacity:1; }
+    .tab-content { display:none; flex-direction:column; flex:1; overflow:hidden; }
+    .tab-content.active { display:flex; }
+
+    /* LOCAIS */
+    .tab-search { display:flex; align-items:center; gap:10px; margin:14px 16px 10px; background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:0 14px; height:40px; flex-shrink:0; transition:border-color .2s; }
+    .tab-search:focus-within { border-color:var(--col-icti); }
+    .tab-search input { flex:1; border:none; background:transparent; font-family:var(--font); font-size:13.5px; color:var(--text-1); outline:none; }
+    .tab-search input::placeholder { color:var(--text-3); }
+    .locais-pills { display:flex; gap:6px; padding:0 16px; overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
+    .locais-pills::-webkit-scrollbar { display:none; }
+    .lpill { padding:5px 12px; border:1.5px solid var(--border); border-radius:16px; background:var(--surface); font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer; white-space:nowrap; transition:all .15s; flex-shrink:0; }
+    .lpill:hover { border-color:var(--col-icti); color:var(--col-icti); }
+    .lpill.active { background:var(--col-icti); border-color:var(--col-icti); color:#fff; }
+    .locais-count { padding:10px 16px 6px; font-size:12px; font-weight:700; color:var(--text-3); letter-spacing:.3px; flex-shrink:0; }
+    .locais-list { flex:1; overflow-y:auto; padding:0 12px 16px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+    .locais-list::-webkit-scrollbar { width:4px; }
+    .locais-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+    .local-card { display:flex; align-items:center; gap:12px; padding:12px 10px; border-radius:10px; cursor:pointer; transition:background .15s; border:1.5px solid transparent; margin-bottom:4px; }
+    .local-card:hover { background:var(--bg); border-color:var(--border); }
+    .local-card.highlighted { background:#eff6ff; border-color:#bfdbfe; }
+    .lc-icon { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .lc-info { flex:1; min-width:0; }
+    .lc-name { font-size:14px; font-weight:700; color:var(--text-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lc-sub { font-size:11.5px; color:var(--text-3); margin-top:2px; }
+    .lc-meta { display:flex; align-items:center; gap:6px; margin-top:4px; }
+    .lc-dist { font-size:11.5px; color:var(--col-icti); font-weight:700; }
+    .lc-stars { font-size:11px; color:#fbbf24; letter-spacing:1px; }
+    .lc-rating { font-size:11px; color:var(--text-3); font-weight:600; }
+
+    /* ROTAS */
+    .rotas-form { padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px; }
+    .route-field { display:flex; flex-direction:column; gap:6px; }
+    .route-field label { font-size:10px; font-weight:800; letter-spacing:1px; color:var(--text-3); }
+    .route-input-wrap { display:flex; align-items:center; gap:10px; background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:0 14px; height:44px; transition:border-color .2s; }
+    .route-input-wrap:focus-within { border-color:var(--col-icti); }
+    .route-input-wrap input { flex:1; border:none; background:transparent; font-family:var(--font); font-size:14px; font-weight:600; color:var(--text-1); outline:none; }
+    .route-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .route-dot.green { background:#22c55e; }
+    .route-dot.red { background:#ef4444; }
+    .route-divider { width:2px; height:16px; background:var(--border); margin-left:20px; border-radius:2px; }
+    .btn-use-location { display:flex; align-items:center; gap:6px; padding:6px 12px; background:none; border:1.5px solid var(--border); border-radius:8px; font-family:var(--font); font-size:12px; font-weight:600; color:var(--col-icti); cursor:pointer; align-self:flex-start; transition:all .15s; }
+    .btn-use-location:hover { background:#eff6ff; border-color:var(--col-icti); }
+    .transport-modes { display:flex; gap:8px; }
+    .transport-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 8px; border:2px solid var(--border); border-radius:12px; background:var(--surface); font-family:var(--font); font-size:11px; font-weight:700; color:var(--text-2); cursor:pointer; transition:all .18s; }
+    .transport-emoji { font-size:22px; }
+    .transport-btn:hover { border-color:var(--col-icti); color:var(--col-icti); }
+    .transport-btn.active { border-color:var(--col-icti); background:#eff6ff; color:var(--col-icti); }
+    .btn-calcular { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; background:var(--col-icti); border:none; border-radius:12px; font-family:var(--font); font-size:15px; font-weight:800; color:#fff; cursor:pointer; transition:all .2s; box-shadow:0 4px 14px rgba(26,86,219,.3); }
+    .btn-calcular:hover { background:#1d4ed8; transform:translateY(-1px); }
+    .btn-icti { width:100%; padding:11px; background:none; border:2px dashed var(--col-icti); border-radius:12px; font-family:var(--font); font-size:13px; font-weight:700; color:var(--col-icti); cursor:pointer; transition:all .18s; }
+    .btn-icti:hover { background:#eff6ff; }
+    .route-info-card { background:var(--bg); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+    .route-info-row { display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; color:var(--text-1); }
+
+    /* FEEDBACK */
+    .feedback-panel { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+    .feedback-header { display:flex; align-items:center; gap:10px; }
+    .feedback-header h3 { font-size:16px; font-weight:800; color:var(--text-1); }
+    .feedback-intro { font-size:13px; color:var(--text-3); line-height:1.5; }
+    .feedback-local-name { font-size:15px; font-weight:700; color:var(--text-1); padding:10px; background:var(--bg); border-radius:8px; }
+    .star-input { display:flex; gap:4px; }
+    .star-input .star { font-size:28px; color:#e5e7eb; cursor:pointer; transition:color .12s,transform .1s; }
+    .star-input .star:hover,.star-input .star.active { color:#fbbf24; transform:scale(1.15); }
+    .feedback-tipo { width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:13.5px; color:var(--text-1); background:var(--bg); outline:none; transition:border-color .2s; }
+    .feedback-tipo:focus { border-color:var(--col-icti); }
+    #feedbackText { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:13.5px; color:var(--text-1); background:var(--bg); outline:none; resize:vertical; min-height:100px; transition:border-color .2s; }
+    #feedbackText:focus { border-color:var(--col-icti); }
+    .btn-feedback-send { width:100%; padding:12px; background:var(--col-icti); border:none; border-radius:10px; font-family:var(--font); font-size:14px; font-weight:700; color:#fff; cursor:pointer; transition:all .18s; }
+    .btn-feedback-send:hover { background:#1d4ed8; }
+    .feedbacks-list { display:flex; flex-direction:column; gap:12px; }
+    .feedback-item { background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:12px; }
+    .fi-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .fi-user { font-size:12px; font-weight:700; color:var(--col-icti); }
+    .fi-date { font-size:11px; color:var(--text-3); }
+    .fi-local { font-size:12px; color:var(--text-2); margin-bottom:4px; font-weight:600; }
+    .fi-stars { font-size:13px; color:#fbbf24; margin-bottom:4px; }
+    .fi-text { font-size:13px; color:var(--text-2); line-height:1.5; }
+
+    /* FILTROS */
+    .filtros-list { flex:1; overflow-y:auto; overflow-x:visible; padding:12px; display:flex; flex-direction:column; gap:8px; scrollbar-width:thin; }
+    .filtro-accordion { border:1.5px solid var(--border); border-radius:12px; overflow:visible; }
+    .filtro-header { width:100%; display:flex; justify-content:space-between; align-items:center; padding:13px 14px; background:var(--surface); border:none; font-family:var(--font); font-size:14px; font-weight:700; color:var(--text-1); cursor:pointer; transition:background .15s; }
+    .filtro-header > span { display:flex; align-items:center; gap:8px; }
+    .filtro-header:hover { background:var(--bg); }
+    .filtro-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .chevron { transition:transform .2s; color:var(--text-3); }
+    .filtro-accordion.collapsed .chevron { transform:rotate(-90deg); }
+    .filtro-body { padding:4px 14px 12px; display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--border); background:var(--bg); border-radius:0 0 10px 10px; }
+    .filtro-body.closed { display:none; }
+    .filtro-check { display:flex; align-items:center; gap:10px; padding:8px 4px; font-size:13.5px; color:var(--text-2); cursor:pointer; transition:color .12s; border-radius:6px; }
+    .filtro-check:hover { color:var(--text-1); }
+    .filtro-check input[type="checkbox"] { width:16px; height:16px; accent-color:var(--col-icti); cursor:pointer; }
+    .filtro-especial { padding:14px 16px; border-top:1px solid var(--border); background:var(--surface); }
+    .filtro-especial-title { font-size:10px; font-weight:800; letter-spacing:1.5px; color:var(--text-3); margin-bottom:10px; }
+    .filtro-especial-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; cursor:pointer; border:1.5px solid var(--border); margin-bottom:7px; transition:all .15s; background:var(--bg); }
+    .filtro-especial-item:hover { border-color:var(--col-icti); background:#eff6ff; }
+    .filtro-especial-item input[type="checkbox"] { width:16px; height:16px; accent-color:var(--col-icti); cursor:pointer; flex-shrink:0; }
+    .filtro-especial-item input:checked ~ .fe-label { color:var(--col-icti); font-weight:700; }
+    .fe-icon { font-size:18px; }
+    .fe-label { font-size:13px; font-weight:600; color:var(--text-2); display:flex; align-items:center; gap:6px; }
+    .fe-badge { background:var(--col-icti); color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; }
+    .legenda { padding:14px; border-top:1px solid var(--border); background:var(--surface); }
+    .legenda-title { font-size:10px; font-weight:800; letter-spacing:1.5px; color:var(--text-3); margin-bottom:10px; }
+    .legenda-item { display:flex; align-items:center; gap:10px; padding:4px 0; font-size:13px; font-weight:600; color:var(--text-2); }
+    .legenda-line { width:28px; height:3.5px; border-radius:3px; flex-shrink:0; }
+
+    /* MAP */
+    .map-container { position:fixed; top:var(--header-h); left:0; right:0; bottom:0; z-index:1; }
+    #map { width:100%; height:100%; }
+    .map-marker { width:38px; height:48px; cursor:pointer; transform-origin:bottom center; transition:transform .2s; }
+    .map-marker:hover { transform:scale(1.15); }
+    .map-marker-inner { position:relative; width:38px; height:38px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.25); border:2.5px solid rgba(255,255,255,.9); }
+    .map-marker-emoji { transform:rotate(45deg); font-size:17px; line-height:1; }
+    .icti-marker { width:46px; height:46px; border-radius:50%; background:var(--col-icti); border:3px solid #fff; box-shadow:0 4px 16px rgba(26,86,219,.4); display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; animation:icti-pulse 2.5s infinite; }
+    @keyframes icti-pulse { 0%,100%{box-shadow:0 4px 16px rgba(26,86,219,.4),0 0 0 0 rgba(26,86,219,.3)} 50%{box-shadow:0 4px 16px rgba(26,86,219,.4),0 0 0 12px rgba(26,86,219,0)} }
+    .user-marker { width:20px; height:20px; border-radius:50%; background:var(--col-icti); border:3px solid #fff; box-shadow:0 2px 8px rgba(26,86,219,.5); animation:user-pulse 2s infinite; }
+    @keyframes user-pulse { 0%,100%{box-shadow:0 2px 8px rgba(26,86,219,.5),0 0 0 0 rgba(26,86,219,.4)} 50%{box-shadow:0 2px 8px rgba(26,86,219,.5),0 0 0 14px rgba(26,86,219,0)} }
+    @keyframes gps-searching { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .fab-gps.searching { animation:gps-searching 1s infinite; background:#f59e0b; border-color:#f59e0b; color:#fff; }
+    .btn-satellite { position:absolute; bottom:250px; right:16px; width:48px; height:48px; border-radius:12px; background:var(--surface); border:1.5px solid var(--border); box-shadow:var(--shadow-md); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; z-index:100; color:var(--text-2); font-size:9px; font-weight:800; font-family:var(--font); letter-spacing:.3px; transition:all .2s; }
+    .btn-satellite:hover { border-color:var(--col-icti); color:var(--col-icti); }
+    .btn-satellite.active { background:#0f172a; border-color:#0f172a; color:#4ade80; }
+    .fab-gps { position:absolute; bottom:180px; right:16px; width:48px; height:48px; border-radius:50%; background:var(--surface); border:1.5px solid var(--border); box-shadow:var(--shadow-md); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:100; color:var(--col-icti); transition:all .2s; }
+    .fab-gps:hover { transform:scale(1.08); box-shadow:var(--shadow-lg); }
+    .fab-gps.active { background:var(--col-icti); color:#fff; border-color:var(--col-icti); }
+    .zoom-controls { position:absolute; bottom:80px; right:16px; display:flex; flex-direction:column; border-radius:10px; overflow:hidden; box-shadow:var(--shadow-md); z-index:100; }
+    .zoom-btn { width:40px; height:40px; background:var(--surface); border:1px solid var(--border); font-size:22px; font-weight:300; color:var(--text-2); cursor:pointer; transition:background .15s; display:flex; align-items:center; justify-content:center; }
+    .zoom-btn:hover { background:var(--bg); color:var(--text-1); }
+    .zoom-btn:first-child { border-bottom:none; }
+    .map-brand { position:absolute; bottom:10px; left:16px; display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.9); backdrop-filter:blur(8px); padding:6px 12px; border-radius:20px; font-size:11px; font-weight:700; color:var(--col-icti); box-shadow:var(--shadow-sm); z-index:100; }
+
+    /* POPUP */
+    .place-popup { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); width:300px; background:#1e293b; color:#fff; border-radius:16px; padding:18px 18px 16px; box-shadow:0 12px 40px rgba(0,0,0,.35); z-index:500; animation:popup-in .25s cubic-bezier(.4,0,.2,1); }
+    @keyframes popup-in { from{opacity:0;transform:translateX(-50%) translateY(16px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+    .popup-close { position:absolute; top:12px; right:12px; width:26px; height:26px; background:rgba(255,255,255,.12); border:none; border-radius:50%; color:rgba(255,255,255,.7); font-size:12px; cursor:pointer; transition:background .15s; display:flex; align-items:center; justify-content:center; }
+    .popup-close:hover { background:rgba(255,255,255,.2); }
+    .popup-category { font-size:10px; font-weight:800; letter-spacing:1.5px; margin-bottom:5px; }
+    .popup-name { font-size:17px; font-weight:800; margin-bottom:5px; }
+    .popup-address { font-size:12px; color:rgba(255,255,255,.6); margin-bottom:10px; }
+    .popup-rating { font-size:13px; color:#fbbf24; margin-bottom:14px; }
+    .popup-actions { display:flex; gap:8px; }
+    .popup-btn { flex:1; padding:10px; border:none; border-radius:10px; font-family:var(--font); font-size:12.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all .18s; }
+    .popup-btn.primary { background:var(--col-icti); color:#fff; }
+    .popup-btn.primary:hover { background:#1d4ed8; }
+    .popup-btn.secondary { background:rgba(255,255,255,.12); color:rgba(255,255,255,.85); }
+    .popup-btn.secondary:hover { background:rgba(255,255,255,.2); }
+
+    /* LOGIN MODAL */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(6px); z-index:2000; display:flex; align-items:center; justify-content:center; }
+    .modal-box { background:var(--surface); border-radius:20px; padding:36px 32px 28px; width:380px; max-width:calc(100vw - 40px); box-shadow:var(--shadow-lg); position:relative; animation:modal-in .25s cubic-bezier(.4,0,.2,1); }
+    @keyframes modal-in { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+    .modal-close { position:absolute; top:16px; right:16px; width:30px; height:30px; background:var(--bg); border:1.5px solid var(--border); border-radius:50%; color:var(--text-2); font-size:13px; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; }
+    .modal-close:hover { background:var(--border); }
+    .modal-logo { display:flex; justify-content:center; margin-bottom:16px; }
+    .modal-title { font-size:22px; font-weight:800; text-align:center; color:var(--text-1); margin-bottom:6px; }
+    .modal-sub { font-size:13px; text-align:center; color:var(--text-2); margin-bottom:24px; line-height:1.5; }
+    .modal-field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+    .modal-field label { font-size:12px; font-weight:700; color:var(--text-2); letter-spacing:.3px; }
+    .modal-field input { padding:11px 14px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:14px; color:var(--text-1); background:var(--bg); outline:none; transition:border-color .2s; }
+    .modal-field input:focus { border-color:var(--col-icti); }
+    .field-error { font-size:11.5px; color:#ef4444; font-weight:600; }
+    .modal-btn { width:100%; padding:13px; background:var(--col-icti); border:none; border-radius:12px; font-family:var(--font); font-size:15px; font-weight:800; color:#fff; cursor:pointer; margin-top:4px; transition:all .2s; box-shadow:0 4px 14px rgba(26,86,219,.3); }
+    .modal-btn:hover { background:#1d4ed8; transform:translateY(-1px); }
+    .modal-note { text-align:center; font-size:11.5px; color:var(--text-3); margin-top:10px; }
+
+    /* TOAST */
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#1e293b; color:#fff; padding:12px 24px; border-radius:24px; font-size:13.5px; font-weight:600; box-shadow:var(--shadow-lg); z-index:3000; transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s; opacity:0; pointer-events:none; white-space:nowrap; }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    /* MAPLIBRE OVERRIDES */
+    .maplibregl-ctrl-attrib { display:none !important; }
+    .maplibregl-ctrl-logo { display:none !important; }
+
+    /* UTILITIES */
+    .bg-seg{background:rgba(239,68,68,.12)} .bg-sau{background:rgba(34,197,94,.12)}
+    .bg-ali{background:rgba(245,158,11,.12)} .bg-tra{background:rgba(59,130,246,.12)}
+    .bg-ser{background:rgba(139,92,246,.12)}
+
+    /* RESPONSIVE */
+    @media(max-width:900px){ .filter-pills .pill:not(:first-child):not(.active){display:none} }
+    @media(max-width:768px){
+      :root{--sidebar-w:100vw}
+      .header-center{display:none} .filter-pills{display:none} .logo-tagline{display:none}
+      .place-popup{width:calc(100vw - 24px);bottom:12px}
+      .btn-satellite{bottom:240px;right:12px} .fab-gps{bottom:170px;right:12px} .zoom-controls{bottom:70px;right:12px}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header" id="header">
+    <div class="header-left">
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="logo-wrap">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="8" fill="#1A56DB"/>
+            <path d="M14 4C10.13 4 7 7.13 7 11C7 16.25 14 24 14 24C14 24 21 16.25 21 11C21 7.13 17.87 4 14 4ZM14 13.5C12.62 13.5 11.5 12.38 11.5 11C11.5 9.62 12.62 8.5 14 8.5C15.38 8.5 16.5 9.62 16.5 11C16.5 12.38 15.38 13.5 14 13.5Z" fill="white"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-mapeia">mapeia</span>
+          <span class="logo-icti">ICTI</span>
+          <span class="logo-tagline">Mapeando o que importa para você</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Buscar estabelecimento, endereço..." autocomplete="off" />
+        <div class="search-results" id="searchResults"></div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="filter-pills" id="headerFilterPills">
+        <button class="pill active" data-cat="todos">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          Todos
+        </button>
+        <button class="pill" data-cat="seguranca"><span class="pill-dot" style="background:#ef4444"></span>Segurança</button>
+        <button class="pill" data-cat="saude"><span class="pill-dot" style="background:#22c55e"></span>Saúde</button>
+        <button class="pill" data-cat="alimentacao"><span class="pill-dot" style="background:#f59e0b"></span>Alimentação</button>
+        <button class="pill" data-cat="transporte"><span class="pill-dot" style="background:#3b82f6"></span>Transporte</button>
+        <button class="pill" data-cat="servicos"><span class="pill-dot" style="background:#8b5cf6"></span>Serviços</button>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" id="loginBtn" title="Login">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="locais">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          LOCAIS
+        </button>
+        <button class="tab-btn" data-tab="rotas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          ROTAS
+        </button>
+        <button class="tab-btn" data-tab="feedback">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          FEEDBACK
+        </button>
+        <button class="tab-btn" data-tab="filtros">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          FILTROS
+        </button>
+      </div>
+
+      <!-- ABA LOCAIS -->
+      <div class="tab-content active" id="tab-locais">
+        <div class="tab-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="locaisSearch" placeholder="Filtrar locais..." />
+        </div>
+        <div class="locais-pills" id="locaisPills">
+          <button class="lpill active" data-cat="todos">Todos</button>
+          <button class="lpill" data-cat="seguranca">🔴 Segurança</button>
+          <button class="lpill" data-cat="saude">🟢 Saúde</button>
+          <button class="lpill" data-cat="alimentacao">🟡 Alimentação</button>
+          <button class="lpill" data-cat="transporte">🔵 Transporte</button>
+          <button class="lpill" data-cat="servicos">🟣 Serviços</button>
+        </div>
+        <div class="locais-count" id="locaisCount">0 locais encontrados</div>
+        <div class="locais-list" id="locaisList"></div>
+      </div>
+
+      <!-- ABA ROTAS -->
+      <div class="tab-content" id="tab-rotas">
+        <div class="rotas-form">
+          <div class="route-field">
+            <label>ORIGEM</label>
+            <div class="route-input-wrap">
+              <span class="route-dot green"></span>
+              <input type="text" id="origemInput" value="ICTI — Carlos Mariguella" readonly />
+            </div>
+            <button class="btn-use-location" id="btnUseLocation">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              Usar minha localização
+            </button>
+          </div>
+          <div class="route-divider"></div>
+          <div class="route-field">
+            <label>DESTINO</label>
+            <div class="route-input-wrap">
+              <span class="route-dot red"></span>
+              <input type="text" id="destinoInput" placeholder="Para onde deseja ir?" />
+            </div>
+          </div>
+          <div class="transport-modes">
+            <button class="transport-btn active" data-mode="walking"><span class="transport-emoji">🚶</span><span>A pé</span></button>
+            <button class="transport-btn" data-mode="cycling"><span class="transport-emoji">🚴</span><span>Bike</span></button>
+            <button class="transport-btn" data-mode="driving"><span class="transport-emoji">🚗</span><span>Carro</span></button>
+          </div>
+          <button class="btn-calcular" id="btnCalcular">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Calcular Rota
+          </button>
+          <button class="btn-icti" id="btnVoltarICTI">🏛️ ESTOU NO ICTI</button>
+          <div class="route-info" id="routeInfo" style="display:none">
+            <div class="route-info-card">
+              <div class="route-info-row">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="routeTime">—</span>
+              </div>
+              <div class="route-info-row">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg>
+                <span id="routeDistance">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA FEEDBACK -->
+      <div class="tab-content" id="tab-feedback">
+        <div class="feedback-panel" id="feedbackPanel">
+          <div class="feedback-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A56DB" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <h3>Avaliações e Feedbacks</h3>
+          </div>
+          <p class="feedback-intro">Selecione um local no mapa para avaliar ou deixar um comentário.</p>
+          <div class="feedback-selected" id="feedbackSelected" style="display:none">
+            <div class="feedback-local-name" id="feedbackLocalName"></div>
+            <div class="star-input" id="starInput">
+              <span class="star" data-val="1">★</span>
+              <span class="star" data-val="2">★</span>
+              <span class="star" data-val="3">★</span>
+              <span class="star" data-val="4">★</span>
+              <span class="star" data-val="5">★</span>
+            </div>
+            <select class="feedback-tipo" id="feedbackTipo">
+              <option value="">Tipo de feedback...</option>
+              <option value="elogio">🌟 Elogio</option>
+              <option value="problema">⚠️ Relatar problema</option>
+              <option value="sugestao">💡 Sugestão</option>
+              <option value="horario">🕐 Informar horário</option>
+            </select>
+            <textarea id="feedbackText" placeholder="Escreva seu comentário..."></textarea>
+            <button class="btn-feedback-send" id="btnFeedbackSend">Enviar Feedback</button>
+          </div>
+          <div class="feedbacks-list" id="feedbacksList"></div>
+        </div>
+      </div>
+
+      <!-- ABA FILTROS -->
+      <div class="tab-content" id="tab-filtros">
+        <div class="filtros-list" id="filtrosList">
+          <div class="filtro-accordion">
+            <button class="filtro-header" data-cat="seguranca">
+              <span><span class="filtro-dot" style="background:#ef4444"></span> Segurança</span>
+              <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filtro-body open">
+              <label class="filtro-check"><input type="checkbox" data-cat="seguranca" data-sub="delegacia" checked /> <span>🚔</span> Delegacia</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="seguranca" data-sub="guarda" checked /> <span>🛡️</span> Guarda Municipal</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="seguranca" data-sub="segpriv" checked /> <span>🔒</span> Segurança Privada</label>
+            </div>
+          </div>
+          <div class="filtro-accordion">
+            <button class="filtro-header" data-cat="saude">
+              <span><span class="filtro-dot" style="background:#22c55e"></span> Saúde</span>
+              <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filtro-body open">
+              <label class="filtro-check"><input type="checkbox" data-cat="saude" data-sub="farmacia" checked /> <span>💊</span> Farmácia</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="saude" data-sub="posto-pub" checked /> <span>🏥</span> Posto de Saúde Público</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="saude" data-sub="posto-part" checked /> <span>🏪</span> Posto de Saúde Particular</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="saude" data-sub="hospital" checked /> <span>🏨</span> Hospital</label>
+            </div>
+          </div>
+          <div class="filtro-accordion">
+            <button class="filtro-header" data-cat="alimentacao">
+              <span><span class="filtro-dot" style="background:#f59e0b"></span> Alimentação</span>
+              <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filtro-body open">
+              <label class="filtro-check"><input type="checkbox" data-cat="alimentacao" data-sub="mercado" checked /> <span>🛒</span> Mercado</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="alimentacao" data-sub="restaurante" checked /> <span>🍽️</span> Restaurante</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="alimentacao" data-sub="lanchonete" checked /> <span>🥪</span> Lanchonete</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="alimentacao" data-sub="padaria" checked /> <span>🥖</span> Padaria</label>
+            </div>
+          </div>
+          <div class="filtro-accordion">
+            <button class="filtro-header" data-cat="transporte">
+              <span><span class="filtro-dot" style="background:#3b82f6"></span> Transporte</span>
+              <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filtro-body open">
+              <label class="filtro-check"><input type="checkbox" data-cat="transporte" data-sub="bus" checked /> <span>🚌</span> Ponto de Ônibus</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="transporte" data-sub="rodoviaria" checked /> <span>🚉</span> Rodoviária</label>
+            </div>
+          </div>
+          <div class="filtro-accordion">
+            <button class="filtro-header" data-cat="servicos">
+              <span><span class="filtro-dot" style="background:#8b5cf6"></span> Outros Serviços</span>
+              <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filtro-body open">
+              <label class="filtro-check"><input type="checkbox" data-cat="servicos" data-sub="correios" checked /> <span>📮</span> Correios</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="servicos" data-sub="banco" checked /> <span>🏦</span> Bancos</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="servicos" data-sub="loterica" checked /> <span>🎟️</span> Lotérica</label>
+              <label class="filtro-check"><input type="checkbox" data-cat="servicos" data-sub="caixa" checked /> <span>💳</span> Caixa Eletrônico</label>
+            </div>
+          </div>
+        </div>
+        <div class="filtro-especial">
+          <div class="filtro-especial-title">FILTROS ESPECIAIS</div>
+          <label class="filtro-especial-item">
+            <input type="checkbox" id="filtroMaisAvaliados" />
+            <span class="fe-icon">⭐</span>
+            <span class="fe-label">Mais avaliados <span class="fe-badge">4.0+</span></span>
+          </label>
+          <label class="filtro-especial-item">
+            <input type="checkbox" id="filtro24h" />
+            <span class="fe-icon">🕐</span>
+            <span class="fe-label">Aberto 24H</span>
+          </label>
+        </div>
+        <div class="legenda">
+          <div class="legenda-title">LEGENDA DE CORES</div>
+          <div class="legenda-item"><span class="legenda-line" style="background:#ef4444"></span>Segurança</div>
+          <div class="legenda-item"><span class="legenda-line" style="background:#22c55e"></span>Saúde</div>
+          <div class="legenda-item"><span class="legenda-line" style="background:#f59e0b"></span>Alimentação</div>
+          <div class="legenda-item"><span class="legenda-line" style="background:#3b82f6"></span>Transporte</div>
+          <div class="legenda-item"><span class="legenda-line" style="background:#8b5cf6"></span>Outros Serviços</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- MAP -->
+  <main class="map-container">
+    <div id="map"></div>
+    <button class="btn-satellite" id="btnSatellite" title="Alternar satélite">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+      SAT
+    </button>
+    <button class="fab-gps" id="fabGps" title="Minha localização">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        <circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/>
+      </svg>
+    </button>
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoomIn" title="Zoom In">+</button>
+      <button class="zoom-btn" id="zoomOut" title="Zoom Out">−</button>
+    </div>
+    <div class="map-brand">
+      <svg width="18" height="18" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#1A56DB"/><path d="M14 4C10.13 4 7 7.13 7 11C7 16.25 14 24 14 24C14 24 21 16.25 21 11C21 7.13 17.87 4 14 4ZM14 13.5C12.62 13.5 11.5 12.38 11.5 11C11.5 9.62 12.62 8.5 14 8.5C15.38 8.5 16.5 9.62 16.5 11C16.5 12.38 15.38 13.5 14 13.5Z" fill="white"/></svg>
+      MAPEIA ICTI
+    </div>
+  </main>
+
+  <!-- POPUP -->
+  <div class="place-popup" id="placePopup" style="display:none">
+    <button class="popup-close" id="popupClose">✕</button>
+    <div class="popup-category" id="popupCategory"></div>
+    <div class="popup-name" id="popupName"></div>
+    <div class="popup-address" id="popupAddress"></div>
+    <div class="popup-rating" id="popupRating"></div>
+    <div class="popup-actions">
+      <button class="popup-btn primary" id="popupTracar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Traçar Rota
+      </button>
+      <button class="popup-btn secondary" id="popupFeedback">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Feedback
+      </button>
+    </div>
+  </div>
+
+  <!-- LOGIN MODAL -->
+  <div class="modal-overlay" id="loginModal" style="display:none">
+    <div class="modal-box">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div class="modal-logo">
+        <svg width="40" height="40" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="#1A56DB"/><path d="M14 4C10.13 4 7 7.13 7 11C7 16.25 14 24 14 24C14 24 21 16.25 21 11C21 7.13 17.87 4 14 4ZM14 13.5C12.62 13.5 11.5 12.38 11.5 11C11.5 9.62 12.62 8.5 14 8.5C15.38 8.5 16.5 9.62 16.5 11C16.5 12.38 15.38 13.5 14 13.5Z" fill="white"/></svg>
+      </div>
+      <h2 class="modal-title">Entrar no MAPEIA ICTI</h2>
+      <p class="modal-sub">Use seu email institucional <strong>@ufba.br</strong> para continuar</p>
+      <div class="modal-field">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="seu.nome@ufba.br" />
+        <span class="field-error" id="emailError"></span>
+      </div>
+      <div class="modal-field">
+        <label>Senha</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" />
+      </div>
+      <button class="modal-btn" id="loginSubmit">Entrar</button>
+      <p class="modal-note">Apenas emails @ufba.br são aceitos</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  'use strict';
+
+  const MAPTILER_KEY = 'NQE7P9VzMRyq3rRJCQq6';
+  const ICTI_COORDS  = [-38.32193, -12.69775];
+  const ICTI_ZOOM    = 16.5;
+
+  const CAT_META = {
+    seguranca:  { label:'Segurança',       color:'#ef4444', colorClass:'bg-seg', dot:'🔴' },
+    saude:      { label:'Saúde',           color:'#22c55e', colorClass:'bg-sau', dot:'🟢' },
+    alimentacao:{ label:'Alimentação',     color:'#f59e0b', colorClass:'bg-ali', dot:'🟡' },
+    transporte: { label:'Transporte',      color:'#3b82f6', colorClass:'bg-tra', dot:'🔵' },
+    servicos:   { label:'Outros Serviços', color:'#8b5cf6', colorClass:'bg-ser', dot:'🟣' },
+  };
+
+  const PLACES = [
+    // ── SEGURANÇA ──────────────────────────────────────────────────────────────
+    { id:2,  cat:'seguranca',  sub:'guarda',    emoji:'🛡️', name:'Guarda Municipal Camaçari',   addr:'Av. Eixo Urbano Central, S/N',    rating:3.7, open24h:false, coords:[-38.3220,-12.6970] },
+
+    // ── SAÚDE ──────────────────────────────────────────────────────────────────
+    { id:3,  cat:'saude',      sub:'farmacia',  emoji:'💊', name:'Boa Farma',                   addr:'R. da Bandeira, S/N',             rating:4.1, open24h:true, coords:[-38.3248,-12.6948] },
+    { id:4,  cat:'saude',      sub:'farmacia',  emoji:'💊', name:'Farmácia Redemed',             addr:'R. Adelina de Sá, 1',             rating:4.3, open24h:true, coords:[-38.3232,-12.6938] },
+    { id:5,  cat:'saude',      sub:'farmacia',  emoji:'💊', name:'Ultra Popular Farmácia',       addr:'Av. Getúlio Vargas, 21',          rating:4.1, open24h:true, coords:[-38.3248,-12.6972] },
+
+    // ── ALIMENTAÇÃO ────────────────────────────────────────────────────────────
+    { id:6,  cat:'alimentacao',sub:'padaria',   emoji:'🥖', name:'Padaria Pão Quente',           addr:'R. Bela, 22',                     rating:4.7, open24h:false, coords:[-38.3215,-12.6980] },
+    { id:7,  cat:'alimentacao',sub:'padaria',   emoji:'🥖', name:'Padaria do Centro',            addr:'Av. Getúlio Vargas, 55',          rating:4.3, open24h:false, coords:[-38.3250,-12.6968] },
+    { id:8,  cat:'alimentacao',sub:'mercado',   emoji:'🛒', name:'Mercadinho Econômico',         addr:'R. José Nunes de Matos, S/N',     rating:3.8, open24h:false, coords:[-38.3210,-12.6958] },
+
+    // ── TRANSPORTE ────────────────────────────────────────────────────────────
+    { id:9,  cat:'transporte', sub:'rodoviaria',emoji:'🚉', name:'Rodoviária de Camaçari',       addr:'R. da Rodoviária, 211 – Centro',  rating:3.2, open24h:true, coords:[-38.3191682,-12.7017909] },
+    { id:10, cat:'transporte', sub:'bus',       emoji:'🚌', name:'Ponto Av. Eixo Urbano',        addr:'Av. Eixo Urbano Central, S/N',    rating:3.5, open24h:false, coords:[-38.3235,-12.6975] },
+    { id:11, cat:'transporte', sub:'bus',       emoji:'🚌', name:'Ponto Av. Getúlio Vargas',     addr:'Av. Getúlio Vargas, S/N',         rating:3.4, open24h:false, coords:[-38.3248,-12.6980] },
+
+    // ── SERVIÇOS ──────────────────────────────────────────────────────────────
+    { id:12, cat:'servicos',   sub:'banco',     emoji:'🏦', name:'Banco do Brasil',              addr:'R. Adelina de Sá, S/N',           rating:3.8, open24h:false, coords:[-38.3240,-12.6940] },
+    { id:13, cat:'servicos',   sub:'banco',     emoji:'🏦', name:'Itaú',                         addr:'R. Costa Pinto, S/N',             rating:3.9, open24h:false, coords:[-38.3212,-12.6952] },
+    { id:14, cat:'servicos',   sub:'banco',     emoji:'🏦', name:'Caixa Econômica Federal',      addr:'R. Bela Vista, 50',               rating:4.0, open24h:false, coords:[-38.3182,-12.6940] },
+    { id:15, cat:'servicos',   sub:'loterica',  emoji:'🎟️', name:'Lotérica Centro Camaçari',    addr:'Av. Getúlio Vargas, 12',          rating:4.0, open24h:false, coords:[-38.3245,-12.6965] },
+    { id:16, cat:'servicos',   sub:'correios',  emoji:'📮', name:'Correios – Ag. Centro',        addr:'R. da Bandeira, 180',             rating:3.5, open24h:false, coords:[-38.3250,-12.6955] },
+  ];
+
+  const state = {
+    map: null, markers: {}, userMarker: null, userCoords: null,
+    activeFilters: { cat:'todos' }, subchecks: {}, selectedPlace: null,
+    feedbackRating: 0, feedbacks: [], currentUser: null, transportMode: 'walking', sidebarOpen: false,
+    activeRoute: null, // { originCoords, destCoords, color }
+    useUserLocation: false, // true = use GPS as origin; false = use ICTI
+    geoWatchId: null,
+    feedbackPlace: null, // place selected for feedback (survives hidePopup)
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+    initUI();
+    initFilters();
+    requestGeolocation(false); // silent on load
+  });
+
+  /* MAP */
+
+  function initMap() {
+    state.map = new maplibregl.Map({
+      container: 'map',
+      style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`,
+      center: ICTI_COORDS, zoom: ICTI_ZOOM,
+      maxZoom: 20, minZoom: 12, antialias: true,
+    });
+    state.map.on('load', () => { placeIctiMarker(); placeAllMarkers(); renderLocaisList(); });
+    state.map.on('click', () => hidePopup());
+    document.getElementById('zoomIn').addEventListener('click', () => state.map.zoomIn({ duration:300 }));
+    document.getElementById('zoomOut').addEventListener('click', () => state.map.zoomOut({ duration:300 }));
+
+    // Satellite / street toggle
+    const STYLES = {
+      street:    `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_KEY}`,
+      satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`,
+    };
+    let isSatellite = false;
+
+    document.getElementById('btnSatellite').addEventListener('click', () => {
+      isSatellite = !isSatellite;
+      const btn = document.getElementById('btnSatellite');
+      btn.classList.toggle('active', isSatellite);
+      btn.title = isSatellite ? 'Ver mapa normal' : 'Ver satélite';
+
+      showToast(isSatellite ? '🛰️ Modo satélite' : '🗺️ Modo mapa');
+
+      // Save current view
+      const center = state.map.getCenter();
+      const zoom   = state.map.getZoom();
+      const bearing = state.map.getBearing();
+      const pitch   = state.map.getPitch();
+
+      state.map.setStyle(isSatellite ? STYLES.satellite : STYLES.street);
+
+      // Restore markers, route and view after style loads
+      state.map.once('styledata', () => {
+        state.map.jumpTo({ center, zoom, bearing, pitch });
+        // Redraw route if active
+        if (state.activeRoute) {
+          const { originCoords, destCoords, color } = state.activeRoute;
+          state.map.addSource('route', {
+            type: 'geojson',
+            data: { type:'Feature', geometry:{ type:'LineString', coordinates: state.activeRoute.coords || [originCoords, destCoords] } },
+          });
+          state.map.addLayer({ id:'route-casing',  type:'line', source:'route', layout:{'line-join':'round','line-cap':'round'}, paint:{'line-color':'#ffffff','line-width':12,'line-opacity':.85} });
+          state.map.addLayer({ id:'route-outline', type:'line', source:'route', layout:{'line-join':'round','line-cap':'round'}, paint:{'line-color': color || '#1A56DB','line-width':7,'line-opacity':1} });
+          state.map.addLayer({ id:'route-line',    type:'line', source:'route', layout:{'line-join':'round','line-cap':'round'}, paint:{'line-color':'#ffffff','line-width':2.5,'line-opacity':.35} });
+        }
+        // Redraw all markers
+        Object.values(state.markers).forEach(({ marker }) => marker.addTo(state.map));
+        if (state.userMarker) state.userMarker.addTo(state.map);
+      });
+    });
+  }
+
+  function placeIctiMarker() {
+    const el = document.createElement('div');
+    el.className = 'icti-marker';
+    el.innerHTML = '🏛️';
+    el.title = 'ICTI — Carlos Mariguella';
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      showToast('📍 Instituto ICTI — Campus Carlos Mariguella');
+      state.map.flyTo({ center: ICTI_COORDS, zoom: ICTI_ZOOM, duration: 800 });
+    });
+    new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(ICTI_COORDS).addTo(state.map);
+  }
+
+  function createMarkerElement(place) {
+    const meta = CAT_META[place.cat];
+    const wrap = document.createElement('div');
+    wrap.className = 'map-marker';
+    wrap.innerHTML = `<div class="map-marker-inner" style="background:${meta.color}"><span class="map-marker-emoji">${place.emoji}</span></div>`;
+    wrap.addEventListener('click', e => { e.stopPropagation(); selectPlace(place); });
+    return wrap;
+  }
+
+  function placeAllMarkers() {
+    PLACES.forEach(place => {
+      const el = createMarkerElement(place);
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(place.coords).addTo(state.map);
+      state.markers[place.id] = { marker, el };
+    });
+  }
+
+  /* SELECT PLACE */
+  function selectPlace(place) {
+    state.selectedPlace = place;
+    state.feedbackPlace = place; // always keep feedbackPlace in sync
+    const meta = CAT_META[place.cat];
+    const popup = document.getElementById('placePopup');
+    document.getElementById('popupCategory').textContent = meta.label.toUpperCase();
+    document.getElementById('popupCategory').style.color = meta.color;
+    document.getElementById('popupName').textContent = place.name;
+    document.getElementById('popupAddress').innerHTML = `📍 ${place.addr}`;
+    document.getElementById('popupRating').innerHTML = `${renderStars(place.rating)} <span style="color:rgba(255,255,255,.7);font-size:12px">(${place.rating})</span>`;
+    popup.style.display = 'block';
+    state.map.flyTo({ center: place.coords, zoom: Math.max(state.map.getZoom(), 17), duration: 700, offset: [0,-80] });
+    document.querySelectorAll('.local-card').forEach(c => c.classList.remove('highlighted'));
+    const card = document.querySelector(`.local-card[data-id="${place.id}"]`);
+    if (card) { card.classList.add('highlighted'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  }
+
+  function hidePopup() {
+    document.getElementById('placePopup').style.display = 'none';
+    state.selectedPlace = null;
+    document.querySelectorAll('.local-card').forEach(c => c.classList.remove('highlighted'));
+  }
+
+  /* LOCAIS LIST */
+  function renderLocaisList(filterCat = 'todos', filterText = '') {
+    const list = document.getElementById('locaisList');
+    const countEl = document.getElementById('locaisCount');
+    const filtered = PLACES.filter(p => {
+      const catOk  = filterCat === 'todos' || p.cat === filterCat;
+      const textOk = !filterText || p.name.toLowerCase().includes(filterText.toLowerCase());
+      const subOk  = state.subchecks[p.sub] !== false;
+      const specOk = passesSpecial(p);
+      return catOk && textOk && subOk && specOk;
+    });
+    if (state.userCoords) {
+      filtered.sort((a,b) => calcDist(state.userCoords, a.coords) - calcDist(state.userCoords, b.coords));
+    }
+    countEl.textContent = `${filtered.length} locais encontrados`;
+    list.innerHTML = '';
+    filtered.forEach(p => {
+      const meta = CAT_META[p.cat];
+      const d = state.userCoords ? calcDist(state.userCoords, p.coords) : null;
+      const dist = d !== null ? (d < 1 ? `${(d*1000).toFixed(0)} m` : `${d.toFixed(2)} km`) : '—';
+      const card = document.createElement('div');
+      card.className = 'local-card';
+      card.dataset.id = p.id;
+      card.innerHTML = `
+        <div class="lc-icon ${meta.colorClass}">${p.emoji}</div>
+        <div class="lc-info">
+          <div class="lc-name">${p.name}</div>
+          <div class="lc-sub" style="color:${meta.color}">${subcatLabel(p.sub)}${p.open24h ? ' <span style="background:#22c55e;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;vertical-align:middle;">24H</span>' : ''}</div>
+          <div class="lc-meta">
+            ${state.userCoords ? `<span class="lc-dist">${dist}</span>` : ''}
+            <span class="lc-stars">${renderStars(p.rating)}</span>
+            <span class="lc-rating">${p.rating}</span>
+          </div>
+        </div>`;
+      card.addEventListener('click', () => selectPlace(p));
+      list.appendChild(card);
+    });
+  }
+
+  function subcatLabel(sub) {
+    const map = {
+      delegacia:'Delegacia', guarda:'Guarda Municipal', segpriv:'Segurança Privada',
+      farmacia:'Farmácia', 'posto-pub':'Posto de Saúde Público', 'posto-part':'Posto de Saúde Particular',
+      hospital:'Hospital', mercado:'Mercado', restaurante:'Restaurante', lanchonete:'Lanchonete',
+      padaria:'Padaria', bus:'Ponto de Ônibus', rodoviaria:'Rodoviária',
+      correios:'Correios', banco:'Banco', loterica:'Lotérica', caixa:'Caixa Eletrônico',
+    };
+    return map[sub] || sub;
+  }
+
+  /* FILTERS */
+  function initFilters() {
+    PLACES.forEach(p => { if (!(p.sub in state.subchecks)) state.subchecks[p.sub] = true; });
+  }
+
+  function getSpecialFilters() {
+    return {
+      maisAvaliados: document.getElementById('filtroMaisAvaliados')?.checked || false,
+      so24h:         document.getElementById('filtro24h')?.checked || false,
+    };
+  }
+
+  function passesSpecial(p) {
+    const { maisAvaliados, so24h } = getSpecialFilters();
+    if (maisAvaliados && p.rating < 4.0) return false;
+    if (so24h && !p.open24h) return false;
+    return true;
+  }
+
+  function applyVisibility() {
+    PLACES.forEach(p => {
+      const catOk = state.activeFilters.cat === 'todos' || p.cat === state.activeFilters.cat;
+      const subOk = state.subchecks[p.sub] !== false;
+      const specOk = passesSpecial(p);
+      const m = state.markers[p.id];
+      if (m) m.el.style.display = (catOk && subOk && specOk) ? '' : 'none';
+    });
+    renderLocaisList(state.activeFilters.cat);
+  }
+
+  /* ROUTES */
+  async function calculateRoute(originCoords, destCoords, mode) {
+    const profiles = {
+      walking: { maptiler:'walking',  speed:4,  factor:1.20 },
+      cycling: { maptiler:'cycling',  speed:12, factor:1.20 },
+      driving: { maptiler:'driving',  speed:25, factor:1.55 },
+    };
+    const cfg = profiles[mode] || profiles.walking;
+
+    function showDebug(msg) { console.log('[ROTA]', msg); }
+
+    // ── MapTiler Directions (mesma key já usada no mapa) ─────────────────────
+    // Suporta CORS * e funciona com file:// e https://
+    const mtUrl =
+      `https://api.maptiler.com/directions/v2/${cfg.maptiler}/` +
+      `${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}` +
+      `?key=${MAPTILER_KEY}&geometries=geojson&overview=full&steps=false`;
+
+    try {
+      showDebug(`⏳ Calculando rota [${cfg.maptiler}]...`);
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 10000);
+      const res  = await fetch(mtUrl, { signal: ctrl.signal, mode: 'cors' });
+      clearTimeout(tid);
+
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>'');
+        showDebug(`⚠️ MapTiler HTTP ${res.status}: ${txt.slice(0,60)}`);
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // MapTiler returns { routes: [...] } (OSRM-compatible format)
+      if (data.routes?.length > 0) {
+        const r   = data.routes[0];
+        const dur = (r.distance / 1000 / cfg.speed) * 3600;
+        showDebug(`✅ ${(r.distance/1000).toFixed(2)} km — ${Math.round(dur/60)} min`);
+        return { coords: r.geometry.coordinates, distance: r.distance, duration: dur };
+      }
+
+      // Some versions wrap differently
+      if (data.trip?.legs?.length > 0) {
+        const coords = decodePolyline(data.trip.legs[0].shape);
+        const distM  = data.trip.summary.length * 1000;
+        const dur    = (data.trip.summary.length / cfg.speed) * 3600;
+        showDebug(`✅ ${data.trip.summary.length.toFixed(2)} km — ${Math.round(dur/60)} min`);
+        return { coords, distance: distM, duration: dur };
+      }
+
+      showDebug(`⚠️ Resposta inesperada: ${JSON.stringify(data).slice(0,80)}`);
+      throw new Error('Formato desconhecido');
+
+    } catch(e) {
+      console.warn('MapTiler Directions falhou:', e.message);
+      showDebug(`⚠️ ${e.message} — tentando OSRM...`);
+    }
+
+    // ── OSRM público (fallback) ───────────────────────────────────────────────
+    const osrmProfiles = { walking:'foot', cycling:'bicycle', driving:'car' };
+    const op = osrmProfiles[mode] || 'foot';
+    const osrmUrls = [
+      `https://router.project-osrm.org/route/v1/${op}/${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}?overview=full&geometries=geojson&steps=false`,
+      `https://routing.openstreetmap.de/routed-${op}/route/v1/${op}/${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}?overview=full&geometries=geojson&steps=false`,
+    ];
+
+    for (const url of osrmUrls) {
+      try {
+        showDebug(`⏳ Tentando OSRM [${op}]...`);
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), 8000);
+        const res  = await fetch(url, { signal: ctrl.signal, mode: 'cors' });
+        clearTimeout(tid);
+        if (!res.ok) { showDebug(`⚠️ OSRM HTTP ${res.status}`); continue; }
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes?.length > 0) {
+          const r   = data.routes[0];
+          const dur = (r.distance / 1000 / cfg.speed) * 3600;
+          showDebug(`✅ OSRM OK — ${(r.distance/1000).toFixed(2)} km`);
+          return { coords: r.geometry.coordinates, distance: r.distance, duration: dur };
+        }
+        showDebug(`⚠️ OSRM code: ${data.code}`);
+      } catch(e) { showDebug(`⚠️ OSRM: ${e.message}`); }
+    }
+
+    // ── Valhalla (segundo fallback) ───────────────────────────────────────────
+    const valProfiles = { walking:'pedestrian', cycling:'bicycle', driving:'auto' };
+    try {
+      showDebug('⏳ Tentando Valhalla...');
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 8000);
+      const res  = await fetch('https://valhalla1.openstreetmap.de/route', {
+        method:'POST', signal:ctrl.signal, mode:'cors',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          locations:[{lon:originCoords[0],lat:originCoords[1]},{lon:destCoords[0],lat:destCoords[1]}],
+          costing: valProfiles[mode]||'pedestrian',
+          directions_options:{units:'km'},
+        }),
+      });
+      clearTimeout(tid);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.trip?.legs?.length > 0) {
+          const coords = decodePolyline(d.trip.legs[0].shape);
+          const distM  = d.trip.summary.length * 1000;
+          const dur    = (d.trip.summary.length / cfg.speed) * 3600;
+          showDebug(`✅ Valhalla OK — ${d.trip.summary.length.toFixed(2)} km`);
+          return { coords, distance:distM, duration:dur };
+        }
+      }
+    } catch(e) { showDebug(`⚠️ Valhalla: ${e.message}`); }
+
+    // ── Fallback local ────────────────────────────────────────────────────────
+    showDebug('⚠️ APIs bloqueadas — estimativa local');
+    const distKm = calcDist(originCoords, destCoords);
+    const roadKm = distKm * cfg.factor;
+    const curve  = mode === 'driving' ? 0.22 : 0.08;
+    const mid    = [
+      (originCoords[0]+destCoords[0])/2+(destCoords[1]-originCoords[1])*curve,
+      (originCoords[1]+destCoords[1])/2-(destCoords[0]-originCoords[0])*curve,
+    ];
+    return { coords:[originCoords,mid,destCoords], distance:roadKm*1000, duration:(roadKm/cfg.speed)*3600 };
+  }
+
+  function decodePolyline(encoded, precision=6) {
+    const factor=Math.pow(10,precision);
+    let i=0,lat=0,lng=0; const out=[];
+    while(i<encoded.length){
+      let b,s=0,r=0;
+      do{b=encoded.charCodeAt(i++)-63;r|=(b&0x1f)<<s;s+=5;}while(b>=0x20);
+      lat+=(r&1)?~(r>>1):(r>>1); s=0; r=0;
+      do{b=encoded.charCodeAt(i++)-63;r|=(b&0x1f)<<s;s+=5;}while(b>=0x20);
+      lng+=(r&1)?~(r>>1):(r>>1);
+      out.push([lng/factor,lat/factor]);
+    }
+    return out;
+  }
+
+  
+
+  // Decode Valhalla's encoded polyline6 format
+  
+
+  function removeRouteLayer() {
+    ['route-casing','route-outline','route-line'].forEach(id => {
+      try { if (state.map.getLayer(id)) state.map.removeLayer(id); } catch(e){}
+    });
+    try { if (state.map.getSource('route')) state.map.removeSource('route'); } catch(e){}
+  }
+
+  function getOriginCoords() {
+    return (state.useUserLocation && state.userCoords) ? state.userCoords : ICTI_COORDS;
+  }
+
+  async function drawRoute(originCoords, destCoords, color) {
+    const routeColor = color || '#1A56DB';
+    showToast('⏳ Calculando rota...');
+
+    let routeData;
+    try {
+      routeData = await calculateRoute(originCoords, destCoords, state.transportMode);
+    } catch(e) {
+      console.error('calculateRoute error:', e);
+      showToast('⚠️ Erro ao calcular rota');
+      return;
+    }
+    const { coords, distance, duration } = routeData;
+
+    removeRouteLayer();
+
+    state.map.addSource('route', {
+      type: 'geojson',
+      data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } },
+    });
+
+    // Borda branca para contraste com o mapa
+    state.map.addLayer({
+      id: 'route-casing',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': 11, 'line-opacity': 0.9 },
+    });
+
+    // Linha colorida da categoria
+    state.map.addLayer({
+      id: 'route-outline',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': routeColor, 'line-width': 7, 'line-opacity': 1 },
+    });
+
+    // Brilho interno sutil
+    state.map.addLayer({
+      id: 'route-line',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.3 },
+    });
+
+    const bounds = coords.reduce(
+      (b, c) => b.extend(c),
+      new maplibregl.LngLatBounds(coords[0], coords[0])
+    );
+    state.map.fitBounds(bounds, { padding: 90, duration: 900 });
+
+    const totalMins = Math.round(duration / 60);
+    const km        = (distance / 1000).toFixed(2);
+    let timeLabel;
+    if (totalMins < 60) {
+      timeLabel = `${totalMins} min`;
+    } else {
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+      timeLabel = m > 0 ? `${h}h ${m}min` : `${h}h`;
+    }
+    // Show modal icon next to time
+    const modeIcon = { walking:'🚶', cycling:'🚴', driving:'🚗' };
+    document.getElementById('routeTime').textContent     = `${modeIcon[state.transportMode] || ''} ${timeLabel}`;
+    document.getElementById('routeDistance').textContent = `${km} km`;
+    document.getElementById('routeInfo').style.display   = 'block';
+
+    // Borda do card de info na cor da categoria
+    const card = document.querySelector('.route-info-card');
+    if (card) card.style.borderColor = routeColor;
+
+    // Save active route so transport mode change can recalculate
+    state.activeRoute = { originCoords, destCoords, color, coords };
+
+    showToast('✅ Rota calculada!');
+  }
+
+  /* GEOLOCATION */
+  function requestGeolocation(showFeedback = false) {
+    if (!navigator.geolocation) {
+      if (showFeedback) showToast('❌ Seu navegador não suporta geolocalização');
+      return;
+    }
+
+    if (showFeedback) showToast('📡 Buscando sua localização...');
+
+    // First: quick single fix to get something fast
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        updateUserLocation([pos.coords.longitude, pos.coords.latitude]);
+        if (showFeedback) {
+          showToast('✅ Localização encontrada!');
+          state.map.flyTo({ center: state.userCoords, zoom: 17, duration: 900 });
+        }
+      },
+      err => handleGeoError(err, showFeedback),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+
+    // Then: keep watching for updates
+    if (state.geoWatchId) navigator.geolocation.clearWatch(state.geoWatchId);
+    state.geoWatchId = navigator.geolocation.watchPosition(
+      pos => updateUserLocation([pos.coords.longitude, pos.coords.latitude]),
+      err => handleGeoError(err, false),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+    );
+  }
+
+  function handleGeoError(err, showFeedback) {
+    if (!showFeedback) return;
+    const msgs = {
+      1: '🔒 Permissão de localização negada. Ative nas configurações do navegador.',
+      2: '📡 Sinal de GPS indisponível. Tente em área aberta.',
+      3: '⏱️ Tempo esgotado ao buscar localização. Tente novamente.',
+    };
+    showToast(msgs[err.code] || '⚠️ Erro ao obter localização.');
+    console.warn('Geo error:', err.code, err.message);
+  }
+
+  function updateUserLocation(coords) {
+    state.userCoords = coords;
+    // Remove searching state from GPS button when location arrives
+    const gpsBtn = document.getElementById('fabGps');
+    if (gpsBtn) gpsBtn.classList.remove('searching');
+    if (!state.userMarker) {
+      const el = document.createElement('div');
+      el.className = 'user-marker';
+      state.userMarker = new maplibregl.Marker({ element:el, anchor:'center' }).setLngLat(coords).addTo(state.map);
+    } else {
+      state.userMarker.setLngLat(coords);
+    }
+    renderLocaisList(state.activeFilters.cat);
+  }
+
+  /* UI */
+  function initUI() {
+    const hamburger = document.getElementById('hamburgerBtn');
+    const sidebar   = document.getElementById('sidebar');
+    const overlay   = document.getElementById('sidebarOverlay');
+
+    hamburger.addEventListener('click', () => {
+      state.sidebarOpen = !state.sidebarOpen;
+      sidebar.classList.toggle('open', state.sidebarOpen);
+      overlay.classList.toggle('show', state.sidebarOpen);
+      hamburger.classList.toggle('open', state.sidebarOpen);
+    });
+    overlay.addEventListener('click', closeSidebar);
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('#headerFilterPills .pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('#headerFilterPills .pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.activeFilters.cat = pill.dataset.cat;
+        applyVisibility();
+        syncLocaisPill(pill.dataset.cat);
+      });
+    });
+
+    document.querySelectorAll('#locaisPills .lpill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('#locaisPills .lpill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.activeFilters.cat = pill.dataset.cat;
+        applyVisibility();
+        syncHeaderPill(pill.dataset.cat);
+      });
+    });
+
+    document.getElementById('locaisSearch').addEventListener('input', e => {
+      renderLocaisList(state.activeFilters.cat, e.target.value);
+    });
+
+    const searchInput   = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    searchInput.addEventListener('input', debounce(e => {
+      const q = e.target.value.trim();
+      if (!q) { searchResults.classList.remove('show'); return; }
+      const results = PLACES.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
+      if (!results.length) { searchResults.classList.remove('show'); return; }
+      searchResults.innerHTML = results.slice(0,6).map(p => `
+        <div class="search-result-item" data-id="${p.id}">
+          <span class="sri-icon">${p.emoji}</span>
+          <div class="sri-info">
+            <div class="sri-name">${p.name}</div>
+            <div class="sri-sub">${subcatLabel(p.sub)} · ${CAT_META[p.cat].label}</div>
+          </div>
+        </div>`).join('');
+      searchResults.classList.add('show');
+      searchResults.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const place = PLACES.find(p => p.id == item.dataset.id);
+          if (place) { selectPlace(place); searchResults.classList.remove('show'); searchInput.value = ''; }
+        });
+      });
+    }, 200));
+    document.addEventListener('click', e => { if (!e.target.closest('.search-box')) searchResults.classList.remove('show'); });
+
+    document.querySelectorAll('.filtro-header').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const acc  = btn.parentElement;
+        const body = acc.querySelector('.filtro-body');
+        const isNowClosed = !body.classList.contains('closed');
+        body.classList.toggle('closed', isNowClosed);
+        acc.classList.toggle('collapsed', isNowClosed);
+      });
+    });
+
+    document.querySelectorAll('.filtro-check input').forEach(cb => {
+      state.subchecks[cb.dataset.sub] = cb.checked;
+      cb.addEventListener('change', () => { state.subchecks[cb.dataset.sub] = cb.checked; applyVisibility(); });
+    });
+
+    // Special filters
+    document.getElementById('filtroMaisAvaliados').addEventListener('change', applyVisibility);
+    document.getElementById('filtro24h').addEventListener('change', applyVisibility);
+
+    document.querySelectorAll('.transport-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        document.querySelectorAll('.transport-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.transportMode = btn.dataset.mode;
+        // Recalculate automatically if a route is already active
+        if (state.activeRoute) {
+          const { originCoords, destCoords, color } = state.activeRoute;
+          await drawRoute(originCoords, destCoords, color);
+        }
+      });
+    });
+
+    document.getElementById('fabGps').addEventListener('click', () => {
+      const btn = document.getElementById('fabGps');
+      if (state.userCoords) {
+        // Already have location — fly to it
+        state.map.flyTo({ center: state.userCoords, zoom: 17, duration: 900 });
+        btn.classList.add('active');
+        setTimeout(() => btn.classList.remove('active'), 2000);
+      } else {
+        // Show searching animation
+        btn.classList.add('searching');
+        requestGeolocation(true);
+        // searching class removed automatically by updateUserLocation
+        setTimeout(() => btn.classList.remove('searching'), 15000);
+      }
+    });
+
+    document.getElementById('btnUseLocation').addEventListener('click', () => {
+      if (state.userCoords) {
+        state.useUserLocation = true;
+        document.getElementById('origemInput').value = 'Minha localização atual';
+        showToast('📍 Origem definida como sua localização!');
+      } else {
+        // Try to get location with feedback
+        requestGeolocation(true);
+        // Set a one-time callback to apply location when it arrives
+        const waitForLocation = setInterval(() => {
+          if (state.userCoords) {
+            clearInterval(waitForLocation);
+            state.useUserLocation = true;
+            document.getElementById('origemInput').value = 'Minha localização atual';
+            showToast('📍 Localização obtida com sucesso!');
+          }
+        }, 500);
+        setTimeout(() => clearInterval(waitForLocation), 15000);
+      }
+    });
+
+    document.getElementById('btnVoltarICTI').addEventListener('click', () => {
+      document.getElementById('origemInput').value = 'ICTI — Carlos Mariguella';
+      document.getElementById('destinoInput').value = '';
+      document.getElementById('routeInfo').style.display = 'none';
+      removeRouteLayer();
+      state.activeRoute = null;
+      state.useUserLocation = false;
+      state.map.flyTo({ center:ICTI_COORDS, zoom:ICTI_ZOOM, duration:900 });
+      showToast('🏛️ Voltando ao ICTI!');
+    });
+
+    document.getElementById('btnCalcular').addEventListener('click', async () => {
+      const destName = document.getElementById('destinoInput').value.trim();
+      if (!destName) { showToast('⚠️ Informe um destino!'); return; }
+      // Try exact selectedPlace first, then fuzzy search
+      const dest = (state.selectedPlace && state.selectedPlace.name.toLowerCase().includes(destName.toLowerCase()))
+        ? state.selectedPlace
+        : PLACES.find(p => p.name.toLowerCase().includes(destName.toLowerCase()));
+      if (!dest) { showToast('⚠️ Destino não encontrado nos locais cadastrados'); return; }
+      const color1 = CAT_META[dest.cat].color;
+      const origin = getOriginCoords();
+      await drawRoute(origin, dest.coords, color1);
+    });
+
+    document.getElementById('popupClose').addEventListener('click', hidePopup);
+    document.getElementById('popupTracar').addEventListener('click', async () => {
+      if (!state.selectedPlace) return;
+      document.getElementById('destinoInput').value = state.selectedPlace.name;
+      const color2 = CAT_META[state.selectedPlace.cat].color;
+      await drawRoute(getOriginCoords(), state.selectedPlace.coords, color2);
+      hidePopup();
+    });
+    document.getElementById('popupFeedback').addEventListener('click', () => {
+      if (!state.selectedPlace) return;
+      const fbPlace = state.selectedPlace; // capture before hidePopup nulls it
+      hidePopup();
+      openFeedbackFor(fbPlace);
+    });
+
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', () => {
+        state.feedbackRating = parseInt(star.dataset.val);
+        document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('active', i < state.feedbackRating));
+      });
+      star.addEventListener('mouseenter', () => {
+        const val = parseInt(star.dataset.val);
+        document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('active', i < val));
+      });
+      star.addEventListener('mouseleave', () => {
+        document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('active', i < state.feedbackRating));
+      });
+    });
+
+    document.getElementById('btnFeedbackSend').addEventListener('click', () => {
+      if (!state.currentUser) { openLogin(); return; }
+      const place = state.feedbackPlace || state.selectedPlace;
+      if (!place) { showToast('⚠️ Selecione um local no mapa primeiro'); return; }
+      const text = document.getElementById('feedbackText').value.trim();
+      const tipo = document.getElementById('feedbackTipo').value;
+      if (!text) { showToast('⚠️ Escreva seu comentário!'); return; }
+      if (!state.feedbackRating) { showToast('⚠️ Selecione uma avaliação!'); return; }
+      state.feedbacks.unshift({ user:state.currentUser, place:place.name, rating:state.feedbackRating, tipo, text, date:new Date().toLocaleDateString('pt-BR') });
+      renderFeedbacks();
+      document.getElementById('feedbackText').value = '';
+      document.getElementById('feedbackTipo').value = '';
+      state.feedbackRating = 0;
+      document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+      showToast('✅ Feedback enviado com sucesso!');
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      if (state.currentUser) {
+        showToast(`👋 Até logo, ${state.currentUser}!`);
+        state.currentUser = null;
+        document.getElementById('loginBtn').classList.remove('logged-in');
+        document.getElementById('loginBtn').title = 'Login';
+      } else { openLogin(); }
+    });
+    document.getElementById('modalClose').addEventListener('click', closeLogin);
+    document.getElementById('loginModal').addEventListener('click', e => { if (e.target === document.getElementById('loginModal')) closeLogin(); });
+    document.getElementById('loginSubmit').addEventListener('click', doLogin);
+    document.getElementById('loginPassword').addEventListener('keyup', e => { if (e.key === 'Enter') doLogin(); });
+  }
+
+  /* HELPERS */
+  function openSidebar(tab) {
+    state.sidebarOpen = true;
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('show');
+    document.getElementById('hamburgerBtn').classList.add('open');
+    if (tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+      if (btn) btn.classList.add('active');
+      const content = document.getElementById(`tab-${tab}`);
+      if (content) content.classList.add('active');
+    }
+  }
+  function closeSidebar() {
+    state.sidebarOpen = false;
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+    document.getElementById('hamburgerBtn').classList.remove('open');
+  }
+  function openFeedbackFor(place) {
+    state.feedbackPlace = place; // persists even after hidePopup clears selectedPlace
+    openSidebar('feedback');
+    document.getElementById('feedbackSelected').style.display = 'block';
+    document.getElementById('feedbackLocalName').textContent = `📍 ${place.name}`;
+  }
+  function syncLocaisPill(cat) {
+    document.querySelectorAll('#locaisPills .lpill').forEach(p => p.classList.toggle('active', p.dataset.cat === cat));
+  }
+  function syncHeaderPill(cat) {
+    document.querySelectorAll('#headerFilterPills .pill').forEach(p => p.classList.toggle('active', p.dataset.cat === cat));
+  }
+  function renderStars(rating) {
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5 ? 1 : 0;
+    return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - half);
+  }
+  function calcDist([lng1,lat1],[lng2,lat2]) {
+    const R = 6371;
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLng = (lng2-lng1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+  function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  }
+  function openLogin() { document.getElementById('loginModal').style.display = 'flex'; }
+  function closeLogin() {
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('emailError').textContent = '';
+  }
+  function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('emailError');
+    errEl.textContent = '';
+    if (!email) { errEl.textContent = 'Informe o email'; return; }
+    if (!email.endsWith('@ufba.br')) { errEl.textContent = 'Apenas emails @ufba.br são aceitos'; return; }
+    if (pass.length < 4) { errEl.textContent = 'Senha muito curta'; return; }
+    state.currentUser = email;
+    document.getElementById('loginBtn').classList.add('logged-in');
+    document.getElementById('loginBtn').title = `Sair (${email})`;
+    closeLogin();
+    showToast(`✅ Bem-vindo, ${email.split('@')[0]}!`);
+  }
+  function renderFeedbacks() {
+    const list = document.getElementById('feedbacksList');
+    const tipoLabel = { elogio:'🌟 Elogio', problema:'⚠️ Problema', sugestao:'💡 Sugestão', horario:'🕐 Horário' };
+    list.innerHTML = state.feedbacks.map(fb => `
+      <div class="feedback-item">
+        <div class="fi-header"><span class="fi-user">${fb.user.split('@')[0]}</span><span class="fi-date">${fb.date}</span></div>
+        <div class="fi-local">📍 ${fb.place}${fb.tipo ? ' · ' + (tipoLabel[fb.tipo] || '') : ''}</div>
+        <div class="fi-stars">${'★'.repeat(fb.rating)}${'☆'.repeat(5-fb.rating)}</div>
+        <div class="fi-text">${fb.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      </div>`).join('');
+  }
+  </script>
+</body>
+</html>
