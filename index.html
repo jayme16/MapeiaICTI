@@ -6,6 +6,7 @@
   <title>MAPEIA ICTI — Mapeando o que importa para você</title>
   <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -240,6 +241,54 @@
     .bike-popup-count .l { font-size:11.5px; color:var(--text-3); font-weight:600; }
     .bike-popup-serials { display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto; }
 
+    /* TICKET TAB */
+    .ticket-panel { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+    .ticket-header { display:flex; align-items:center; gap:12px; }
+    .ticket-header-icon { width:44px; height:44px; border-radius:12px; background:#fef3c7; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+    .ticket-header h3 { font-size:16px; font-weight:800; color:var(--text-1); }
+    .ticket-header p { font-size:12px; color:var(--text-3); margin-top:1px; }
+
+    .ticket-field { display:flex; flex-direction:column; gap:6px; }
+    .ticket-field label { font-size:10px; font-weight:800; letter-spacing:1px; color:var(--text-3); }
+    .ticket-select { padding:11px 14px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:14px; font-weight:700; color:var(--text-1); background:var(--surface); outline:none; cursor:pointer; transition:border-color .2s; }
+    .ticket-select:focus { border-color:var(--col-icti); }
+
+    .ticket-payment-options { display:flex; gap:8px; }
+    .ticket-pay-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 8px; border:2px solid var(--border); border-radius:12px; background:var(--surface); font-family:var(--font); font-size:13px; font-weight:700; color:var(--text-2); cursor:pointer; transition:all .18s; }
+    .ticket-pay-btn .tp-icon { font-size:24px; }
+    .ticket-pay-btn:hover { border-color:var(--col-icti); }
+    .ticket-pay-btn.active { border-color:var(--col-icti); background:#eff6ff; color:var(--col-icti); }
+
+    .ticket-price-card { background:var(--bg); border:1.5px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+    .ticket-price-label { font-size:11.5px; color:var(--text-3); font-weight:600; margin-bottom:4px; }
+    .ticket-price-value { font-size:28px; font-weight:800; color:var(--text-1); }
+
+    .btn-ticket-buy { width:100%; padding:14px; background:var(--col-icti); border:none; border-radius:12px; font-family:var(--font); font-size:15px; font-weight:800; color:#fff; cursor:pointer; transition:all .2s; box-shadow:0 4px 14px rgba(26,86,219,.3); }
+    .btn-ticket-buy:hover { background:#1d4ed8; transform:translateY(-1px); }
+    .ticket-disclaimer { font-size:11px; color:var(--text-3); text-align:center; line-height:1.4; }
+
+    /* Processing screen */
+    .ticket-processing { display:flex; flex-direction:column; align-items:center; gap:18px; padding:60px 20px; text-align:center; }
+    .ticket-spinner { width:48px; height:48px; border:4px solid var(--border); border-top-color:var(--col-icti); border-radius:50%; animation:ticket-spin .8s linear infinite; }
+    @keyframes ticket-spin { to { transform:rotate(360deg); } }
+    .ticket-processing p { font-size:14px; font-weight:600; color:var(--text-2); }
+
+    /* Ready screen */
+    .ticket-success-badge { background:#f0fdf4; border:1.5px solid #86efac; color:#15803d; font-size:13px; font-weight:700; padding:10px 14px; border-radius:10px; text-align:center; }
+    .ticket-card { background:linear-gradient(135deg,#1e293b,#0f172a); border-radius:18px; padding:20px; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+    .ticket-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+    .ticket-card-dock { font-size:15px; font-weight:800; }
+    .ticket-card-code { font-family:monospace; font-size:12px; color:#94a3b8; letter-spacing:.5px; }
+    .ticket-qr-wrap { background:#fff; border-radius:12px; padding:14px; display:flex; align-items:center; justify-content:center; }
+    .ticket-qr-wrap img, .ticket-qr-wrap canvas { display:block; }
+    .ticket-card-footer { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:14px; font-size:11.5px; color:#94a3b8; font-weight:600; }
+
+    .ticket-instructions { font-size:13px; color:var(--text-2); text-align:center; line-height:1.5; padding:0 8px; }
+    .btn-ticket-simulate { width:100%; padding:13px; background:#22c55e; border:none; border-radius:12px; font-family:var(--font); font-size:14px; font-weight:800; color:#fff; cursor:pointer; transition:all .18s; }
+    .btn-ticket-simulate:hover { background:#16a34a; }
+    .btn-ticket-new { width:100%; padding:11px; background:none; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:13px; font-weight:700; color:var(--text-2); cursor:pointer; transition:all .15s; }
+    .btn-ticket-new:hover { background:var(--bg); }
+
     /* MAP */
     .map-container { position:fixed; top:var(--header-h); left:0; right:0; bottom:0; z-index:1; }
     #map { width:100%; height:100%; }
@@ -398,6 +447,10 @@
         <button class="tab-btn" data-tab="bike">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 9.5l4-1.5 2 4M9 9.5L4 17.5M9 9.5h6l4 8"/></svg>
           BIKE
+        </button>
+        <button class="tab-btn" data-tab="ticket">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>
+          TICKET
         </button>
       </div>
 
@@ -618,6 +671,82 @@
           <button class="btn-bike-refresh" id="btnBikeRefresh">🔄 Atualizar agora</button>
         </div>
       </div>
+
+      <!-- ABA TICKET -->
+      <div class="tab-content" id="tab-ticket">
+        <div class="ticket-panel">
+
+          <!-- TELA 1: compra -->
+          <div id="ticketBuyScreen">
+            <div class="ticket-header">
+              <div class="ticket-header-icon">🎫</div>
+              <div>
+                <h3>Comprar Ticket de Bike</h3>
+                <p>Libere uma bike na doca escolhida</p>
+              </div>
+            </div>
+
+            <div class="ticket-field">
+              <label>DOCA DE RETIRADA</label>
+              <select id="ticketDockSelect" class="ticket-select"></select>
+            </div>
+
+            <div class="ticket-field">
+              <label>FORMA DE PAGAMENTO</label>
+              <div class="ticket-payment-options">
+                <button class="ticket-pay-btn active" data-method="pix">
+                  <span class="tp-icon">💠</span>
+                  <span>Pix</span>
+                </button>
+                <button class="ticket-pay-btn" data-method="cartao">
+                  <span class="tp-icon">💳</span>
+                  <span>Cartão</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="ticket-price-card">
+              <div class="ticket-price-label">Valor da corrida</div>
+              <div class="ticket-price-value">R$ 4,90</div>
+            </div>
+
+            <button class="btn-ticket-buy" id="btnTicketBuy">Finalizar compra</button>
+            <p class="ticket-disclaimer">⚠️ Simulação — nenhum pagamento real é processado.</p>
+          </div>
+
+          <!-- TELA 2: processando -->
+          <div id="ticketProcessingScreen" style="display:none">
+            <div class="ticket-processing">
+              <div class="ticket-spinner"></div>
+              <p id="ticketProcessingText">Processando pagamento via Pix...</p>
+            </div>
+          </div>
+
+          <!-- TELA 3: ticket gerado -->
+          <div id="ticketReadyScreen" style="display:none">
+            <div class="ticket-success-badge">✅ Pagamento aprovado</div>
+
+            <div class="ticket-card">
+              <div class="ticket-card-top">
+                <div class="ticket-card-dock" id="ticketCardDock">Doca ICTI</div>
+                <div class="ticket-card-code" id="ticketCardCode">TKT-XXXXXX</div>
+              </div>
+              <div class="ticket-qr-wrap" id="ticketQrWrap"></div>
+              <div class="ticket-card-footer">
+                <span id="ticketCardMethod">Pix</span>
+                <span>•</span>
+                <span id="ticketCardExpiry">Válido por 15 min</span>
+              </div>
+            </div>
+
+            <p class="ticket-instructions">📲 Aproxime este QR Code do leitor na doca para liberar a bike.</p>
+
+            <button class="btn-ticket-simulate" id="btnTicketSimulate">🔓 Simular leitura na doca</button>
+            <button class="btn-ticket-new" id="btnTicketNew">Comprar outro ticket</button>
+          </div>
+
+        </div>
+      </div>
     </div>
   </aside>
 
@@ -762,7 +891,12 @@
     bikeDocks: {}, // populated per dock id: { available, bikes, connected, pollInterval }
     bikePollMs: 30000, // 30s — GitHub API sem auth permite só 60 req/hora
     notifPermission: 'default', // 'default' | 'granted' | 'denied'
+    notifEnabled: true, // toggle interno — independe da permissão do browser
     activeBikeDockId: null, // which dock is shown in the BIKE tab / popup
+    ticket: {
+      paymentMethod: 'pix',
+      current: null, // { code, dockId, dockName, method, createdAt, expiresAt }
+    },
   };
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -781,7 +915,7 @@
       center: ICTI_COORDS, zoom: ICTI_ZOOM,
       maxZoom: 20, minZoom: 12, antialias: true,
     });
-    state.map.on('load', () => { placeIctiMarker(); placeBikeDockMarkers(); placeAllMarkers(); renderLocaisList(); initBikeDocksState(); renderBikeDockSelector(); startAllBikePolling(); });
+    state.map.on('load', () => { placeIctiMarker(); placeBikeDockMarkers(); placeAllMarkers(); renderLocaisList(); initBikeDocksState(); renderBikeDockSelector(); renderTicketDockSelector(); startAllBikePolling(); });
     state.map.on('click', () => hidePopup());
     document.getElementById('zoomIn').addEventListener('click', () => state.map.zoomIn({ duration:300 }));
     document.getElementById('zoomOut').addEventListener('click', () => state.map.zoomOut({ duration:300 }));
@@ -950,7 +1084,7 @@
     const list = document.getElementById('bikeList');
     if (list) {
       if (dockData.bikes.length === 0) {
-        list.innerHTML = '<div class="bike-empty">Nenhuma bike disponível ainda.<br>Aguardando o ESP32 liberar uma bike...</div>';
+        list.innerHTML = '<div class="bike-empty">Nenhuma bike disponível nesta doca.</div>';
       } else {
         list.innerHTML = dockData.bikes.map(b => `
           <div class="bike-item">
@@ -1087,6 +1221,105 @@
       clearInterval(dockData.pollInterval);
       dockData.pollInterval = null;
     }
+  }
+
+  /* ── TICKET (compra simulada + QR Code) ───────────────────────────────── */
+  function renderTicketDockSelector() {
+    const sel = document.getElementById('ticketDockSelect');
+    if (!sel) return;
+    sel.innerHTML = BIKE_DOCKS.map(d =>
+      `<option value="${d.id}">${d.name}</option>`
+    ).join('');
+  }
+
+  function gerarCodigoTicket() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem caracteres ambíguos
+    let codigo = 'TKT-';
+    for (let i = 0; i < 6; i++) codigo += chars[Math.floor(Math.random() * chars.length)];
+    return codigo;
+  }
+
+  function showTicketScreen(screen) {
+    // screen: 'buy' | 'processing' | 'ready'
+    document.getElementById('ticketBuyScreen').style.display       = screen === 'buy'        ? 'block' : 'none';
+    document.getElementById('ticketProcessingScreen').style.display = screen === 'processing' ? 'block' : 'none';
+    document.getElementById('ticketReadyScreen').style.display      = screen === 'ready'      ? 'block' : 'none';
+  }
+
+  function comprarTicket() {
+    const dockId  = document.getElementById('ticketDockSelect').value;
+    const dockMeta = getDockMeta(dockId);
+    const method  = state.ticket.paymentMethod;
+
+    showTicketScreen('processing');
+    const methodLabel = method === 'pix' ? 'Pix' : 'Cartão de crédito';
+    document.getElementById('ticketProcessingText').textContent = `Processando pagamento via ${methodLabel}...`;
+
+    // Simula latência de processamento de pagamento
+    setTimeout(() => {
+      const codigo    = gerarCodigoTicket();
+      const createdAt = Date.now();
+      const expiresAt = createdAt + 15 * 60 * 1000; // 15 minutos de validade
+
+      state.ticket.current = {
+        code: codigo,
+        dockId,
+        dockName: dockMeta?.name || dockId,
+        method,
+        createdAt,
+        expiresAt,
+      };
+
+      renderTicketReady();
+      showTicketScreen('ready');
+      showToast('✅ Pagamento aprovado! Ticket gerado.');
+    }, 1600);
+  }
+
+  function renderTicketReady() {
+    const t = state.ticket.current;
+    if (!t) return;
+
+    document.getElementById('ticketCardDock').textContent   = t.dockName;
+    document.getElementById('ticketCardCode').textContent   = t.code;
+    document.getElementById('ticketCardMethod').textContent = t.method === 'pix' ? '💠 Pix' : '💳 Cartão';
+    document.getElementById('ticketCardExpiry').textContent = 'Válido por 15 min';
+
+    // Conteúdo do QR Code: dados do ticket em formato simples chave=valor
+    const qrPayload = [
+      `TICKET:${t.code}`,
+      `DOCA:${t.dockId.toUpperCase()}`,
+      `EXP:${new Date(t.expiresAt).toISOString()}`,
+    ].join('|');
+
+    const qrWrap = document.getElementById('ticketQrWrap');
+    qrWrap.innerHTML = ''; // limpa QR anterior
+    if (window.QRCode) {
+      new QRCode(qrWrap, {
+        text: qrPayload,
+        width: 180,
+        height: 180,
+        colorDark: '#0f172a',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+    } else {
+      qrWrap.innerHTML = '<div style="padding:40px; font-size:12px; color:#64748b;">QR Code indisponível</div>';
+    }
+  }
+
+  function simularLeituraTicket() {
+    const t = state.ticket.current;
+    if (!t) return;
+
+    if (Date.now() > t.expiresAt) {
+      showToast('⚠️ Ticket expirado. Compre um novo.');
+      return;
+    }
+
+    showToast(`🔓 Bike liberada na ${t.dockName}! Ticket ${t.code} utilizado.`);
+    state.ticket.current = null;
+    showTicketScreen('buy');
   }
 
   function createMarkerElement(place) {
@@ -1713,6 +1946,24 @@
       const dock = getDockMeta(state.activeBikeDockId);
       if (dock) state.map.flyTo({ center: dock.coords, zoom: 17, duration: 800 });
     });
+
+    // Ticket — payment method toggle
+    document.querySelectorAll('.ticket-pay-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ticket-pay-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.ticket.paymentMethod = btn.dataset.method;
+      });
+    });
+
+    // Ticket — buy / processing / ready flow
+    document.getElementById('btnTicketBuy').addEventListener('click', comprarTicket);
+    document.getElementById('btnTicketSimulate').addEventListener('click', simularLeituraTicket);
+    document.getElementById('btnTicketNew').addEventListener('click', () => {
+      state.ticket.current = null;
+      showTicketScreen('buy');
+    });
+
     document.getElementById('popupTracar').addEventListener('click', async () => {
       if (!state.selectedPlace) return;
       document.getElementById('destinoInput').value = state.selectedPlace.name;
@@ -1822,14 +2073,19 @@
       showToast('⚠️ Seu navegador não suporta notificações');
       return;
     }
+
+    // Se já tem permissão concedida, o botão age como um TOGGLE on/off
     if (Notification.permission === 'granted') {
-      state.notifPermission = 'granted';
-      showToast('✅ Notificações já estão ativadas');
+      state.notifEnabled = !state.notifEnabled;
       updateNotifButton();
+      showToast(state.notifEnabled ? '🔔 Notificações ativadas' : '🔕 Notificações desativadas');
       return;
     }
+
+    // Primeira vez — pede permissão ao navegador
     Notification.requestPermission().then(permission => {
       state.notifPermission = permission;
+      state.notifEnabled = (permission === 'granted');
       updateNotifButton();
       if (permission === 'granted') {
         showToast('🔔 Notificações ativadas!');
@@ -1847,8 +2103,8 @@
     // Sempre mostra o toast (funciona mesmo sem permissão de notificação)
     showToast(`🚲 Bike disponível em ${dockName}! ${serial}`);
 
-    // Notificação nativa do navegador/celular, se permitido
-    if ('Notification' in window && Notification.permission === 'granted') {
+    // Notificação nativa do navegador/celular, só se permitido E ativado pelo usuário
+    if ('Notification' in window && Notification.permission === 'granted' && state.notifEnabled) {
       const notif = new Notification('🚲 Bike disponível!', {
         body: `${dockName} — ${serial}`,
         icon: 'https://api.maptiler.com/maps/streets-v4/static/-38.32193,-12.69775,15/64x64.png?key=' + MAPTILER_KEY,
@@ -1877,8 +2133,13 @@
     if (!btn) return;
     const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
     if (perm === 'granted') {
-      btn.textContent = '🔔 Notificações ativadas';
-      btn.classList.add('active');
+      if (state.notifEnabled) {
+        btn.textContent = '🔔 Notificações ativadas (tocar para desativar)';
+        btn.classList.add('active');
+      } else {
+        btn.textContent = '🔕 Notificações desativadas (tocar para ativar)';
+        btn.classList.remove('active');
+      }
     } else if (perm === 'denied') {
       btn.textContent = '🔕 Notificações bloqueadas (ative nas configs do navegador)';
       btn.classList.remove('active');
