@@ -348,6 +348,15 @@
     .modal-btn:hover { background:#1d4ed8; transform:translateY(-1px); }
     .modal-note { text-align:center; font-size:11.5px; color:var(--text-3); margin-top:10px; }
 
+    .modal-box-wide { max-height:88vh; overflow-y:auto; }
+    .modal-tabs { display:flex; gap:6px; background:var(--bg); border-radius:10px; padding:4px; margin-bottom:18px; }
+    .modal-tab-btn { flex:1; padding:9px; border:none; background:none; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:700; color:var(--text-3); cursor:pointer; transition:all .18s; }
+    .modal-tab-btn.active { background:var(--surface); color:var(--col-icti); box-shadow:var(--shadow-sm); }
+    .modal-tab-content { display:none; }
+    .modal-tab-content.active { display:block; }
+    .modal-field-row { display:flex; gap:10px; }
+    .modal-field-row .modal-field { flex:1; }
+
     /* TOAST */
     .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#1e293b; color:#fff; padding:12px 24px; border-radius:24px; font-size:13.5px; font-weight:600; box-shadow:var(--shadow-lg); z-index:3000; transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s; opacity:0; pointer-events:none; white-space:nowrap; }
     .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
@@ -798,24 +807,70 @@
 
   <!-- LOGIN MODAL -->
   <div class="modal-overlay" id="loginModal" style="display:none">
-    <div class="modal-box">
+    <div class="modal-box modal-box-wide">
       <button class="modal-close" id="modalClose">✕</button>
       <div class="modal-logo">
         <svg width="40" height="40" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="#1A56DB"/><path d="M14 4C10.13 4 7 7.13 7 11C7 16.25 14 24 14 24C14 24 21 16.25 21 11C21 7.13 17.87 4 14 4ZM14 13.5C12.62 13.5 11.5 12.38 11.5 11C11.5 9.62 12.62 8.5 14 8.5C15.38 8.5 16.5 9.62 16.5 11C16.5 12.38 15.38 13.5 14 13.5Z" fill="white"/></svg>
       </div>
-      <h2 class="modal-title">Entrar no MAPEIA ICTI</h2>
-      <p class="modal-sub">Use seu email institucional <strong>@ufba.br</strong> para continuar</p>
-      <div class="modal-field">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="seu.nome@ufba.br" />
-        <span class="field-error" id="emailError"></span>
+      <h2 class="modal-title" id="modalTitle">Entrar no MAPEIA ICTI</h2>
+      <p class="modal-sub" id="modalSub">Use seu email institucional <strong>@ufba.br</strong> para continuar</p>
+
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" data-modal-tab="login">Entrar</button>
+        <button class="modal-tab-btn" data-modal-tab="cadastro">Criar conta</button>
       </div>
-      <div class="modal-field">
-        <label>Senha</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" />
+
+      <!-- LOGIN -->
+      <div class="modal-tab-content active" id="modalTab-login">
+        <div class="modal-field">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="seu.nome@ufba.br" />
+          <span class="field-error" id="emailError"></span>
+        </div>
+        <div class="modal-field">
+          <label>Senha</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" />
+        </div>
+        <button class="modal-btn" id="loginSubmit">Entrar</button>
+        <p class="modal-note">Apenas emails @ufba.br são aceitos</p>
       </div>
-      <button class="modal-btn" id="loginSubmit">Entrar</button>
-      <p class="modal-note">Apenas emails @ufba.br são aceitos</p>
+
+      <!-- CADASTRO -->
+      <div class="modal-tab-content" id="modalTab-cadastro">
+        <div class="modal-field-row">
+          <div class="modal-field">
+            <label>Nome</label>
+            <input type="text" id="cadNome" placeholder="Maria" />
+          </div>
+          <div class="modal-field">
+            <label>Sobrenome</label>
+            <input type="text" id="cadSobrenome" placeholder="Silva" />
+          </div>
+        </div>
+        <div class="modal-field">
+          <label>CPF</label>
+          <input type="text" id="cadCpf" placeholder="000.000.000-00" maxlength="14" />
+        </div>
+        <div class="modal-field">
+          <label>Número de matrícula UFBA</label>
+          <input type="text" id="cadMatricula" placeholder="202312345678" />
+        </div>
+        <div class="modal-field">
+          <label>Email UFBA</label>
+          <input type="email" id="cadEmail" placeholder="seu.nome@ufba.br" />
+        </div>
+        <div class="modal-field">
+          <label>Telefone</label>
+          <input type="tel" id="cadTelefone" placeholder="(71) 90000-0000" maxlength="15" />
+        </div>
+        <div class="modal-field">
+          <label>Senha</label>
+          <input type="password" id="cadSenha" placeholder="Mínimo 6 caracteres" />
+        </div>
+        <span class="field-error" id="cadastroError"></span>
+        <button class="modal-btn" id="cadastroSubmit">Criar conta</button>
+        <p class="modal-note">Apenas emails e matrículas @ufba.br são aceitos</p>
+      </div>
     </div>
   </div>
 
@@ -903,6 +958,13 @@
     initUI();
     initFilters();
     requestGeolocation(false); // silent on load
+
+    // Se a permissão de notificação já foi concedida antes, registra o
+    // Service Worker de novo (necessário a cada carregamento de página)
+    if ('Notification' in window && Notification.permission === 'granted') {
+      state.notifEnabled = true;
+      registerNotificationServiceWorker();
+    }
   });
 
   /* MAP */
@@ -2002,6 +2064,33 @@
     document.getElementById('loginModal').addEventListener('click', e => { if (e.target === document.getElementById('loginModal')) closeLogin(); });
     document.getElementById('loginSubmit').addEventListener('click', doLogin);
     document.getElementById('loginPassword').addEventListener('keyup', e => { if (e.key === 'Enter') doLogin(); });
+
+    // Modal tabs — Entrar / Criar conta
+    document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.modal-tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`modalTab-${btn.dataset.modalTab}`).classList.add('active');
+        const isCadastro = btn.dataset.modalTab === 'cadastro';
+        document.getElementById('modalTitle').textContent = isCadastro ? 'Criar conta no MAPEIA ICTI' : 'Entrar no MAPEIA ICTI';
+        document.getElementById('modalSub').innerHTML = isCadastro
+          ? 'Preencha seus dados <strong>@ufba.br</strong> para se cadastrar'
+          : 'Use seu email institucional <strong>@ufba.br</strong> para continuar';
+      });
+    });
+
+    // Cadastro — submit
+    document.getElementById('cadastroSubmit').addEventListener('click', cadastrarUsuario);
+    document.getElementById('cadSenha').addEventListener('keyup', e => { if (e.key === 'Enter') cadastrarUsuario(); });
+
+    // Input masks — CPF e telefone
+    document.getElementById('cadCpf').addEventListener('input', e => {
+      e.target.value = formatarCPF(e.target.value);
+    });
+    document.getElementById('cadTelefone').addEventListener('input', e => {
+      e.target.value = formatarTelefone(e.target.value);
+    });
   }
 
   /* HELPERS */
@@ -2049,6 +2138,56 @@
     const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
     return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
   }
+  /* ── SERVICE WORKER (necessário para notificações no Chrome Android) ───
+     Chrome Android bloqueia silenciosamente `new Notification()` direto
+     da página — exige um Service Worker registrado e usa
+     `registration.showNotification()` em vez disso. Registramos um SW
+     mínimo via Blob, sem precisar de um arquivo .js separado. */
+  let swRegistration = null;
+
+  async function registerNotificationServiceWorker() {
+    if (!('serviceWorker' in navigator)) return null;
+    try {
+      const swCode = `
+        self.addEventListener('notificationclick', event => {
+          event.notification.close();
+          event.waitUntil(
+            self.clients.matchAll({ type: 'window' }).then(clientsArr => {
+              if (clientsArr.length > 0) return clientsArr[0].focus();
+              return self.clients.openWindow('/');
+            })
+          );
+        });
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      const reg = await navigator.serviceWorker.register(swUrl);
+      swRegistration = reg;
+      return reg;
+    } catch(e) {
+      console.warn('Service Worker não registrado:', e.message);
+      return null;
+    }
+  }
+
+  async function exibirNotificacao(titulo, opcoes) {
+    // Tenta via Service Worker primeiro (necessário no Chrome Android)
+    if (swRegistration) {
+      try {
+        await swRegistration.showNotification(titulo, opcoes);
+        return true;
+      } catch(e) { console.warn('showNotification via SW falhou:', e.message); }
+    }
+    // Fallback: notificação direta (funciona em desktop)
+    try {
+      new Notification(titulo, opcoes);
+      return true;
+    } catch(e) {
+      console.warn('Notification direta falhou:', e.message);
+      return false;
+    }
+  }
+
   function requestNotificationPermission() {
     if (!('Notification' in window)) {
       showToast('⚠️ Seu navegador não suporta notificações');
@@ -2064,13 +2203,14 @@
     }
 
     // Primeira vez — pede permissão ao navegador
-    Notification.requestPermission().then(permission => {
+    Notification.requestPermission().then(async permission => {
       state.notifPermission = permission;
       state.notifEnabled = (permission === 'granted');
       updateNotifButton();
       if (permission === 'granted') {
+        await registerNotificationServiceWorker();
         showToast('🔔 Notificações ativadas!');
-        new Notification('MAPEIA ICTI', {
+        exibirNotificacao('MAPEIA ICTI', {
           body: 'Você será avisado quando uma bike ficar disponível.',
           icon: 'https://api.maptiler.com/maps/streets-v4/static/-38.32193,-12.69775,15/64x64.png?key=' + MAPTILER_KEY,
         });
@@ -2086,13 +2226,13 @@
 
     // Notificação nativa do navegador/celular, só se permitido E ativado pelo usuário
     if ('Notification' in window && Notification.permission === 'granted' && state.notifEnabled) {
-      const notif = new Notification('🚲 Bike disponível!', {
+      exibirNotificacao('🚲 Bike disponível!', {
         body: `${dockName} — ${serial}`,
         icon: 'https://api.maptiler.com/maps/streets-v4/static/-38.32193,-12.69775,15/64x64.png?key=' + MAPTILER_KEY,
         tag: 'bike-available', // evita acumular notificações duplicadas
         requireInteraction: false,
+        vibrate: [200, 100, 200],
       });
-      notif.onclick = () => { window.focus(); notif.close(); };
       // Beep curto de alerta gerado via Web Audio API (sem depender de arquivo externo)
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2145,20 +2285,107 @@
   function closeLogin() {
     document.getElementById('loginModal').style.display = 'none';
     document.getElementById('emailError').textContent = '';
+    document.getElementById('cadastroError').textContent = '';
+  }
+
+  /* ── CADASTRO / USUÁRIOS (persistidos no localStorage do navegador) ────── */
+  const USERS_KEY = 'mapeiaicti_users';
+
+  function getUsuariosCadastrados() {
+    try {
+      return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+    } catch(e) { return []; }
+  }
+
+  function salvarUsuariosCadastrados(lista) {
+    try { localStorage.setItem(USERS_KEY, JSON.stringify(lista)); } catch(e) {}
+  }
+
+  function formatarCPF(valor) {
+    const digitos = valor.replace(/\D/g, '').slice(0, 11);
+    return digitos
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+
+  function formatarTelefone(valor) {
+    const digitos = valor.replace(/\D/g, '').slice(0, 11);
+    if (digitos.length <= 10) {
+      return digitos.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+    }
+    return digitos.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+  }
+
+  function validarCPF(cpf) {
+    const digitos = cpf.replace(/\D/g, '');
+    return digitos.length === 11;
+  }
+
+  function cadastrarUsuario() {
+    const nome      = document.getElementById('cadNome').value.trim();
+    const sobrenome = document.getElementById('cadSobrenome').value.trim();
+    const cpf       = document.getElementById('cadCpf').value.trim();
+    const matricula = document.getElementById('cadMatricula').value.trim();
+    const email     = document.getElementById('cadEmail').value.trim().toLowerCase();
+    const telefone  = document.getElementById('cadTelefone').value.trim();
+    const senha     = document.getElementById('cadSenha').value;
+    const errEl     = document.getElementById('cadastroError');
+    errEl.textContent = '';
+
+    if (!nome)      { errEl.textContent = 'Informe o nome'; return; }
+    if (!sobrenome) { errEl.textContent = 'Informe o sobrenome'; return; }
+    if (!validarCPF(cpf)) { errEl.textContent = 'CPF inválido — informe os 11 dígitos'; return; }
+    if (!matricula) { errEl.textContent = 'Informe o número de matrícula'; return; }
+    if (!email.endsWith('@ufba.br')) { errEl.textContent = 'Use um email @ufba.br'; return; }
+    if (telefone.replace(/\D/g,'').length < 10) { errEl.textContent = 'Telefone inválido'; return; }
+    if (senha.length < 6) { errEl.textContent = 'Senha deve ter ao menos 6 caracteres'; return; }
+
+    const usuarios = getUsuariosCadastrados();
+    if (usuarios.some(u => u.email === email)) {
+      errEl.textContent = 'Já existe uma conta com este email';
+      return;
+    }
+    if (usuarios.some(u => u.cpf === cpf)) {
+      errEl.textContent = 'Já existe uma conta com este CPF';
+      return;
+    }
+
+    usuarios.push({ nome, sobrenome, cpf, matricula, email, telefone, senha });
+    salvarUsuariosCadastrados(usuarios);
+
+    state.currentUser = email;
+    document.getElementById('loginBtn').classList.add('logged-in');
+    document.getElementById('loginBtn').title = `Sair (${nome})`;
+    closeLogin();
+    showToast(`✅ Conta criada! Bem-vindo, ${nome}!`);
   }
   function doLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const pass  = document.getElementById('loginPassword').value;
     const errEl = document.getElementById('emailError');
     errEl.textContent = '';
     if (!email) { errEl.textContent = 'Informe o email'; return; }
     if (!email.endsWith('@ufba.br')) { errEl.textContent = 'Apenas emails @ufba.br são aceitos'; return; }
-    if (pass.length < 4) { errEl.textContent = 'Senha muito curta'; return; }
+    if (!pass) { errEl.textContent = 'Informe a senha'; return; }
+
+    const usuarios = getUsuariosCadastrados();
+    const usuario  = usuarios.find(u => u.email === email);
+
+    if (!usuario) {
+      errEl.textContent = 'Conta não encontrada — crie uma conta primeiro';
+      return;
+    }
+    if (usuario.senha !== pass) {
+      errEl.textContent = 'Senha incorreta';
+      return;
+    }
+
     state.currentUser = email;
     document.getElementById('loginBtn').classList.add('logged-in');
-    document.getElementById('loginBtn').title = `Sair (${email})`;
+    document.getElementById('loginBtn').title = `Sair (${usuario.nome})`;
     closeLogin();
-    showToast(`✅ Bem-vindo, ${email.split('@')[0]}!`);
+    showToast(`✅ Bem-vindo, ${usuario.nome}!`);
   }
   function renderFeedbacks() {
     const list = document.getElementById('feedbacksList');
