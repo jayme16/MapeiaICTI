@@ -707,7 +707,7 @@
 
             <div class="ticket-price-card">
               <div class="ticket-price-label">Valor da corrida</div>
-              <div class="ticket-price-value">R$ 4,90</div>
+              <div class="ticket-price-value">R$ 2,50</div>
             </div>
 
             <button class="btn-ticket-buy" id="btnTicketBuy">Finalizar compra</button>
@@ -741,7 +741,6 @@
 
             <p class="ticket-instructions">📲 Aproxime este QR Code do leitor na doca para liberar a bike.</p>
 
-            <button class="btn-ticket-simulate" id="btnTicketSimulate">🔓 Simular leitura na doca</button>
             <button class="btn-ticket-new" id="btnTicketNew">Comprar outro ticket</button>
           </div>
 
@@ -1285,12 +1284,8 @@
     document.getElementById('ticketCardMethod').textContent = t.method === 'pix' ? '💠 Pix' : '💳 Cartão';
     document.getElementById('ticketCardExpiry').textContent = 'Válido por 15 min';
 
-    // Conteúdo do QR Code: dados do ticket em formato simples chave=valor
-    const qrPayload = [
-      `TICKET:${t.code}`,
-      `DOCA:${t.dockId.toUpperCase()}`,
-      `EXP:${new Date(t.expiresAt).toISOString()}`,
-    ].join('|');
+    // Conteúdo do QR Code: comando fixo reconhecido pelo leitor da doca
+    const qrPayload = 'ABRIR';
 
     const qrWrap = document.getElementById('ticketQrWrap');
     qrWrap.innerHTML = ''; // limpa QR anterior
@@ -1308,19 +1303,6 @@
     }
   }
 
-  function simularLeituraTicket() {
-    const t = state.ticket.current;
-    if (!t) return;
-
-    if (Date.now() > t.expiresAt) {
-      showToast('⚠️ Ticket expirado. Compre um novo.');
-      return;
-    }
-
-    showToast(`🔓 Bike liberada na ${t.dockName}! Ticket ${t.code} utilizado.`);
-    state.ticket.current = null;
-    showTicketScreen('buy');
-  }
 
   function createMarkerElement(place) {
     const meta = CAT_META[place.cat];
@@ -1958,7 +1940,6 @@
 
     // Ticket — buy / processing / ready flow
     document.getElementById('btnTicketBuy').addEventListener('click', comprarTicket);
-    document.getElementById('btnTicketSimulate').addEventListener('click', simularLeituraTicket);
     document.getElementById('btnTicketNew').addEventListener('click', () => {
       state.ticket.current = null;
       showTicketScreen('buy');
