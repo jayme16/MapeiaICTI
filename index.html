@@ -615,19 +615,6 @@
 
           <div class="bike-list" id="bikeList"></div>
 
-          <div class="bike-config">
-            <label>FONTE DE DADOS</label>
-            <div class="bike-config-row" style="align-items:center;">
-              <span style="font-size:13px; font-weight:700; color:var(--text-1);">📦 GitHub Issues</span>
-              <a id="bikeRepoLink" href="#" target="_blank" rel="noopener" style="margin-left:auto; font-size:12px; color:var(--col-icti); font-weight:600; text-decoration:none;">Ver repositório →</a>
-            </div>
-            <p class="bike-config-hint">
-              Uma <strong>Issue aberta</strong> com a palavra <code id="bikeKeywordHint">ICTI</code> no título/corpo
-              representa 1 bike disponível nesta doca. Inclua <code>Serial: BK-XXXXXX</code> no corpo da issue
-              para mostrar o serial fictício. Fechar a issue = bike retirada.
-            </p>
-          </div>
-
           <button class="btn-bike-refresh" id="btnBikeRefresh">🔄 Atualizar agora</button>
         </div>
       </div>
@@ -957,12 +944,6 @@
         countEl.classList.add('pop');
       }
     }
-
-    const dockMeta = getDockMeta(dockId);
-    const repoLink = document.getElementById('bikeRepoLink');
-    if (repoLink) repoLink.href = `https://github.com/${GITHUB_REPO}/issues`;
-    const keywordHint = document.getElementById('bikeKeywordHint');
-    if (keywordHint && dockMeta) keywordHint.textContent = dockMeta.keyword;
 
     setBikeConnectionStatus(dockData.connected ? 'online' : 'offline');
 
@@ -1724,6 +1705,14 @@
     // Bike tab — notification permission
     document.getElementById('btnNotifPermission').addEventListener('click', requestNotificationPermission);
     updateNotifButton(); // reflect current permission state on load
+
+    // Bike tab — switch between docks (this was missing!)
+    document.getElementById('bikeDockSelect').addEventListener('change', e => {
+      state.activeBikeDockId = e.target.value;
+      renderBikeTab();
+      const dock = getDockMeta(state.activeBikeDockId);
+      if (dock) state.map.flyTo({ center: dock.coords, zoom: 17, duration: 800 });
+    });
     document.getElementById('popupTracar').addEventListener('click', async () => {
       if (!state.selectedPlace) return;
       document.getElementById('destinoInput').value = state.selectedPlace.name;
