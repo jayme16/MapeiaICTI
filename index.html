@@ -218,6 +218,9 @@
     .bike-config-row button:hover { background:#1d4ed8; }
     .bike-config-hint { font-size:11px; color:var(--text-3); line-height:1.4; }
     .bike-config-hint code { background:var(--surface); padding:1px 5px; border-radius:4px; font-size:10.5px; }
+    .btn-notif-permission { width:100%; padding:12px; background:#fff7ed; border:2px solid #fb923c; border-radius:10px; font-family:var(--font); font-size:13px; font-weight:700; color:#c2410c; cursor:pointer; transition:all .18s; }
+    .btn-notif-permission:hover { background:#ffedd5; }
+    .btn-notif-permission.active { background:#f0fdf4; border-color:#22c55e; color:#15803d; }
     .btn-bike-refresh { width:100%; padding:11px; background:none; border:2px dashed var(--col-icti); border-radius:10px; font-family:var(--font); font-size:13px; font-weight:700; color:var(--col-icti); cursor:pointer; transition:all .18s; }
     .btn-bike-refresh:hover { background:#eff6ff; }
 
@@ -598,6 +601,8 @@
             <select id="bikeDockSelect" class="bike-dock-select"></select>
           </div>
 
+          <button class="btn-notif-permission" id="btnNotifPermission">🔔 Ativar notificações</button>
+
           <div class="bike-status-card" id="bikeStatusCard">
             <div class="bike-count" id="bikeCount">0</div>
             <div class="bike-count-label">bikes disponíveis agora</div>
@@ -769,6 +774,7 @@
     feedbackPlace: null, // place selected for feedback (survives hidePopup)
     bikeDocks: {}, // populated per dock id: { available, bikes, connected, pollInterval }
     bikePollMs: 30000, // 30s — GitHub API sem auth permite só 60 req/hora
+    notifPermission: 'default', // 'default' | 'granted' | 'denied'
     activeBikeDockId: null, // which dock is shown in the BIKE tab / popup
   };
 
@@ -1069,7 +1075,7 @@
 
       if (dockData.available > prevAvailable) {
         const newest = bikes[bikes.length - 1];
-        showToast(`🚲 Bike disponível em ${dockMeta.name}! Serial: ${newest?.serial || ''}`);
+        notifyBikeAvailable(dockMeta.name, newest?.serial || '');
       } else if (dockData.available < prevAvailable) {
         showToast(`⬜ Bike retirada de ${dockMeta.name}`);
       }
@@ -1714,6 +1720,10 @@
       fetchBikeStatus(state.activeBikeDockId);
       showToast('🔄 Consultando GitHub Issues...');
     });
+
+    // Bike tab — notification permission
+    document.getElementById('btnNotifPermission').addEventListener('click', requestNotificationPermission);
+    updateNotifButton(); // reflect current permission state on load
     document.getElementById('popupTracar').addEventListener('click', async () => {
       if (!state.selectedPlace) return;
       document.getElementById('destinoInput').value = state.selectedPlace.name;
@@ -1818,6 +1828,77 @@
     const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
     return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
   }
+  function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+      showToast('⚠️ Seu navegador não suporta notificações');
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      state.notifPermission = 'granted';
+      showToast('✅ Notificações já estão ativadas');
+      updateNotifButton();
+      return;
+    }
+    Notification.requestPermission().then(permission => {
+      state.notifPermission = permission;
+      updateNotifButton();
+      if (permission === 'granted') {
+        showToast('🔔 Notificações ativadas!');
+        new Notification('MAPEIA ICTI', {
+          body: 'Você será avisado quando uma bike ficar disponível.',
+          icon: 'https://api.maptiler.com/maps/streets-v4/static/-38.32193,-12.69775,15/64x64.png?key=' + MAPTILER_KEY,
+        });
+      } else {
+        showToast('🔕 Notificações bloqueadas pelo navegador');
+      }
+    });
+  }
+
+  function notifyBikeAvailable(dockName, serial) {
+    // Sempre mostra o toast (funciona mesmo sem permissão de notificação)
+    showToast(`🚲 Bike disponível em ${dockName}! ${serial}`);
+
+    // Notificação nativa do navegador/celular, se permitido
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notif = new Notification('🚲 Bike disponível!', {
+        body: `${dockName} — ${serial}`,
+        icon: 'https://api.maptiler.com/maps/streets-v4/static/-38.32193,-12.69775,15/64x64.png?key=' + MAPTILER_KEY,
+        tag: 'bike-available', // evita acumular notificações duplicadas
+        requireInteraction: false,
+      });
+      notif.onclick = () => { window.focus(); notif.close(); };
+      // Beep curto de alerta gerado via Web Audio API (sem depender de arquivo externo)
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } catch(e) {}
+    }
+  }
+
+  function updateNotifButton() {
+    const btn = document.getElementById('btnNotifPermission');
+    if (!btn) return;
+    const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+    if (perm === 'granted') {
+      btn.textContent = '🔔 Notificações ativadas';
+      btn.classList.add('active');
+    } else if (perm === 'denied') {
+      btn.textContent = '🔕 Notificações bloqueadas (ative nas configs do navegador)';
+      btn.classList.remove('active');
+    } else {
+      btn.textContent = '🔔 Ativar notificações';
+      btn.classList.remove('active');
+    }
+  }
+
   function showToast(msg) {
     const el = document.getElementById('toast');
     el.textContent = msg;
