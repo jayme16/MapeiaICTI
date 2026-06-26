@@ -913,7 +913,6 @@
           <span class="bike-item-icon">🚲</span>
           <div class="bike-item-info">
             <div class="bike-item-serial">${b.serial}</div>
-            <div class="bike-item-time">desde ${formatBikeTime(b.liberado_em)}</div>
           </div>
         </div>`).join('');
     }
@@ -971,7 +970,6 @@
             <span class="bike-item-icon">🚲</span>
             <div class="bike-item-info">
               <div class="bike-item-serial">${b.serial}</div>
-              <div class="bike-item-time">liberada às ${formatBikeTime(b.liberado_em)}</div>
             </div>
           </div>`).join('');
       }
@@ -1051,7 +1049,7 @@
         const serialMatch = (latest.body || '').match(/serial[:\s]+([A-Z0-9\-_]+)/i)
           || latest.title.match(/serial[:\s]+([A-Z0-9\-_]+)/i);
         bikes.push({
-          serial: serialMatch ? serialMatch[1] : `ISSUE-#${latest.number}`,
+          serial: serialMatch ? serialMatch[1] : `Bike Token ${latest.number}`,
           liberado_em: latest.created_at,
           issueNumber: latest.number,
           issueUrl: latest.html_url,
