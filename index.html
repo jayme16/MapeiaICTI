@@ -947,6 +947,7 @@
     notifPermission: 'default', // 'default' | 'granted' | 'denied'
     notifEnabled: true, // toggle interno — independe da permissão do browser
     activeBikeDockId: null, // which dock is shown in the BIKE tab / popup
+    openBikePopupDockId: null, // qual doca está com o popup do mapa aberto agora (null = nenhum)
     ticket: {
       paymentMethod: 'pix',
       current: null, // { code, dockId, dockName, method, createdAt, expiresAt }
@@ -1085,7 +1086,7 @@
     return BIKE_DOCKS.find(d => d.id === dockId);
   }
 
-  function openBikePopup(dockId) {
+  function renderBikePopupContent(dockId) {
     const dock     = getDockMeta(dockId);
     const dockData = state.bikeDocks[dockId];
     if (!dock || !dockData) return;
@@ -1104,6 +1105,14 @@
           </div>
         </div>`).join('');
     }
+  }
+
+  function openBikePopup(dockId) {
+    const dock = getDockMeta(dockId);
+    if (!dock) return;
+
+    state.openBikePopupDockId = dockId; // marca esta doca como "popup aberto"
+    renderBikePopupContent(dockId);
     document.getElementById('bikePopup').style.display = 'block';
     state.map.flyTo({ center: dock.coords, zoom: 18, duration: 700, offset: [0, -80] });
   }
@@ -1172,7 +1181,7 @@
     text.textContent = labels[status] || status;
   }
 
-  async function fetchBikeStatus(dockId, silent = false) {
+  async function fetchBikeStatus(dockId, silent = false, isRetry = false) {
     const dockData = state.bikeDocks[dockId];
     const dockMeta = getDockMeta(dockId);
     if (!dockData || !dockMeta) return false;
@@ -1196,7 +1205,7 @@
 
     try {
       const ctrl = new AbortController();
-      const tid  = setTimeout(() => ctrl.abort(), 8000);
+      const tid  = setTimeout(() => ctrl.abort(), 15000); // 15s — conexões móveis podem ser mais lentas
       const res  = await fetch(url, { signal: ctrl.signal, mode: 'cors' });
       clearTimeout(tid);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1248,6 +1257,10 @@
         setBikeConnectionStatus('online');
         renderBikeTab();
       }
+      // Se o popup desta doca estiver aberto no mapa, atualiza o conteúdo também
+      if (dockId === state.openBikePopupDockId) {
+        renderBikePopupContent(dockId);
+      }
 
       if (dockData.available > prevAvailable) {
         const newest = bikes[bikes.length - 1];
@@ -1257,9 +1270,15 @@
       }
       return true;
     } catch(e) {
+      console.warn('GitHub Issues fetch falhou:', e.message);
+      // Tenta mais uma vez automaticamente antes de marcar como desconectado
+      // (evita falso "offline" por uma falha pontual de rede no celular)
+      if (!isRetry) {
+        await new Promise(r => setTimeout(r, 1500));
+        return fetchBikeStatus(dockId, silent, true);
+      }
       dockData.connected = false;
       if (dockId === state.activeBikeDockId) setBikeConnectionStatus('offline');
-      console.warn('GitHub Issues fetch falhou:', e.message);
       return false;
     }
   }
@@ -1971,6 +1990,7 @@
     // Bike dock popup close
     document.getElementById('bikePopupClose').addEventListener('click', () => {
       document.getElementById('bikePopup').style.display = 'none';
+      state.openBikePopupDockId = null;
     });
 
     // Bike tab — manual refresh
