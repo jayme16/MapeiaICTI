@@ -2200,7 +2200,8 @@
     }
     // Fallback: notificação direta (funciona em desktop)
     try {
-      new Notification(titulo, opcoes);
+      const notif = new Notification(titulo, opcoes);
+      notif.onclick = () => { window.focus(); notif.close(); };
       return true;
     } catch(e) {
       console.warn('Notification direta falhou:', e.message);
@@ -2244,16 +2245,20 @@
     // Sempre mostra o toast (funciona mesmo sem permissão de notificação)
     showToast(`🚲 Bike disponível em ${dockName}! ${serial}`);
 
-    // Notificação nativa do navegador/celular, só se permitido E ativado pelo usuário
+    // Notificação nativa do sistema (Windows/Mac/Android), só se permitido E ativado pelo usuário
     if ('Notification' in window && Notification.permission === 'granted' && state.notifEnabled) {
+      const iconUrl = 'https://api.maptiler.com/maps/streets-v4/static/-38.32193,-12.69775,15/64x64.png?key=' + MAPTILER_KEY;
       exibirNotificacao('🚲 Bike disponível!', {
         body: `${dockName} — ${serial}`,
-        icon: 'https://api.maptiler.com/maps/streets-v4/static/-38.32193,-12.69775,15/64x64.png?key=' + MAPTILER_KEY,
-        tag: 'bike-available', // evita acumular notificações duplicadas
+        icon: iconUrl,
+        badge: iconUrl,           // ícone pequeno mostrado na barra de notificações (Android)
+        tag: 'bike-available',    // evita acumular notificações duplicadas — substitui a anterior
+        renotify: true,           // mesmo com a mesma tag, alerta de novo (som/vibração) a cada nova bike
         requireInteraction: false,
-        vibrate: [200, 100, 200],
+        silent: false,            // garante o som padrão do sistema operacional
+        vibrate: [200, 100, 200], // Android — vibração curta-pausa-curta
       });
-      // Beep curto de alerta gerado via Web Audio API (sem depender de arquivo externo)
+      // Beep curto de alerta gerado via Web Audio API (extra, além do som do SO)
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
