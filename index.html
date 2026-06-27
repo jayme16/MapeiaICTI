@@ -1087,6 +1087,14 @@
     badge.classList.toggle('zero', n === 0);
   }
 
+  // Remove acentos para comparação de keywords ser robusta a "RODOVIARIA" vs "RODOVIÁRIA"
+  function normalizeText(txt) {
+    return (txt || '')
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // remove diacríticos (acentos)
+  }
+
   function getDockMeta(dockId) {
     return BIKE_DOCKS.find(d => d.id === dockId);
   }
@@ -1222,14 +1230,14 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const issues = await res.json();
 
-      const keyword = dockMeta.keyword.toUpperCase();
+      const keyword = normalizeText(dockMeta.keyword);
 
       // Filtra só as issues desta doca e ordena pelo NÚMERO (mais confiável
       // que created_at/ordem da API — número da issue só cresce no GitHub,
       // então o maior número é sempre a issue mais recente de fato).
       const dockIssues = issues
         .filter(issue => {
-          const haystack = `${issue.title} ${issue.body || ''}`.toUpperCase();
+          const haystack = normalizeText(`${issue.title} ${issue.body || ''}`);
           return haystack.includes(keyword);
         })
         .sort((a, b) => b.number - a.number);
@@ -1241,7 +1249,7 @@
       // E o conteúdo não indicar explicitamente "retirada"/"0 bikes"
       let isAvailable = false;
       if (latest && latest.state === 'open') {
-        const text = `${latest.title} ${latest.body || ''}`.toUpperCase();
+        const text = normalizeText(`${latest.title} ${latest.body || ''}`);
         const saysRemoved = text.includes('RETIRADA') || /QUANTIDADE.*0/.test(text);
         isAvailable = !saysRemoved;
       }
