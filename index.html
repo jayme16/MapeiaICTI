@@ -898,6 +898,9 @@
     { id:'rodoviaria', name:'Doca Rodoviária', coords:[-38.3191682,-12.7017909], keyword:'RODOVIARIA' },
   ];
   const GITHUB_REPO = 'jayme16/MapeiaICTI'; // repositório usado como "banco de dados" via Issues
+  // Token com escopo apenas de leitura em repositório público — usado só para
+  // aumentar o limite de requisições de 60/hora para 5.000/hora.
+  const GITHUB_TOKEN = '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';
 
   const CAT_META = {
     seguranca:  { label:'Segurança',       color:'#ef4444', colorClass:'bg-seg', dot:'🔴' },
@@ -943,7 +946,7 @@
     geoWatchId: null,
     feedbackPlace: null, // place selected for feedback (survives hidePopup)
     bikeDocks: {}, // populated per dock id: { available, bikes, connected, pollInterval }
-    bikePollMs: 30000, // 30s — GitHub API sem auth permite só 60 req/hora
+    bikePollMs: 10000, // 10s — com token autenticado (5.000 req/hora), pode ser bem mais rápido
     notifPermission: 'default', // 'default' | 'granted' | 'denied'
     notifEnabled: true, // toggle interno — independe da permissão do browser
     activeBikeDockId: null, // which dock is shown in the BIKE tab / popup
@@ -1206,7 +1209,14 @@
     try {
       const ctrl = new AbortController();
       const tid  = setTimeout(() => ctrl.abort(), 15000); // 15s — conexões móveis podem ser mais lentas
-      const res  = await fetch(url, { signal: ctrl.signal, mode: 'cors' });
+      const res  = await fetch(url, {
+        signal: ctrl.signal,
+        mode: 'cors',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github+json',
+        },
+      });
       clearTimeout(tid);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const issues = await res.json();
