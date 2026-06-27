@@ -900,7 +900,9 @@
   const GITHUB_REPO = 'jayme16/MapeiaICTI'; // repositório usado como "banco de dados" via Issues
   // Token com escopo apenas de leitura em repositório público — usado só para
   // aumentar o limite de requisições de 60/hora para 5.000/hora.
-  const GITHUB_TOKEN = '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';
+  // Sem token: o GitHub revoga automaticamente tokens detectados em código
+  // público exposto (secret scanning), então usamos a API sem autenticação
+  // (limite: 60 req/hora por IP) com polling espaçado o suficiente.
 
   const CAT_META = {
     seguranca:  { label:'Segurança',       color:'#ef4444', colorClass:'bg-seg', dot:'🔴' },
@@ -946,7 +948,7 @@
     geoWatchId: null,
     feedbackPlace: null, // place selected for feedback (survives hidePopup)
     bikeDocks: {}, // populated per dock id: { available, bikes, connected, pollInterval }
-    bikePollMs: 10000, // 10s — com token autenticado (5.000 req/hora), pode ser bem mais rápido
+    bikePollMs: 60000, // 60s — sem token, limite é 60 req/hora por IP (2 docas = 120/h, folga suficiente p/ uso individual)
     notifPermission: 'default', // 'default' | 'granted' | 'denied'
     notifEnabled: true, // toggle interno — independe da permissão do browser
     activeBikeDockId: null, // which dock is shown in the BIKE tab / popup
@@ -1213,7 +1215,6 @@
         signal: ctrl.signal,
         mode: 'cors',
         headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
           'Accept': 'application/vnd.github+json',
         },
       });
